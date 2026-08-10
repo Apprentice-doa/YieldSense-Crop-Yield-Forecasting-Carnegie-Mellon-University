@@ -1,0 +1,69 @@
+# Core ML/AI libraries
+numpy>=1.24.0
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Deep Learning (choose one or both)
+torch>=2.0.0
+# tensorflow>=2.13.0
+
+# Transformers and NLP
+transformers>=4.21.0
+tokenizers>=0.13.0
+
+# Data visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Jupyter and development
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+ipywidgets>=8.0.0
+
+# Experiment tracking (choose one)
+mlflow>=2.5.0
+# wandb>=0.15.0
+
+# Data processing
+scipy>=1.11.0
+pillow>=10.0.0
+opencv-python>=4.8.0
+
+# Testing and quality
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.7.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Utilities
+tqdm>=4.65.0
+python-dotenv>=1.0.0
+pyyaml>=6.0
+requests>=2.31.0
+
+# Optional: Specific ML tools
+# xgboost>=1.7.0
+# lightgbm>=4.0.0
+# catboost>=1.2.0
+
+# Optional: Computer Vision
+# torchvision>=0.15.0
+# albumentations>=1.3.0
+
+# Optional: Time Series
+# statsmodels>=0.14.0
+# prophet>=1.1.0
+
+# Optional: Hyperparameter tuning
+# optuna>=3.3.0
+# ray[tune]>=2.6.0
+
+# Optional: Model serving
+# fastapi>=0.100.0
+# uvicorn>=0.23.0
+
+# Optional: Cloud storage
+# boto3>=1.28.0
+# google-cloud-storage>=2.10.0
