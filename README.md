@@ -1,5 +1,3 @@
-# Qucoon AI Team - Project Template
-
 A standardized template repository for AI/ML projects at Qucoon. This template provides all necessary processes, workflows, and documentation to get new projects started quickly and maintain consistency across the team.
 
 ## What This Template Provides
