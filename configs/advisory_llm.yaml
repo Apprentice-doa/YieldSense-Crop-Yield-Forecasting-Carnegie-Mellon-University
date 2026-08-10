@@ -8,6 +8,19 @@
 # Primary provider, then fallbacks in order. The last resort is always the
 # rules-only renderer, which needs no provider at all.
 providers:
+  # Primary. Azure AI Foundry's /openai/v1 route is OpenAI-compatible, so it
+  # reuses the OpenAI adapter. Endpoint and deployment name come from the
+  # environment so no tenant-specific value is committed.
+  - name: azure_openai
+    model: gpt-5.2                      # fallback if AZURE_OPENAI_DEPLOYMENT unset
+    model_env: AZURE_OPENAI_DEPLOYMENT
+    api_key_env: AZURE_OPENAI_API_KEY
+    endpoint_env: AZURE_OPENAI_ENDPOINT  # base, e.g. https://<res>.services.ai.azure.com/openai/v1
+    endpoint: "https://REPLACE-ME.services.ai.azure.com/openai/v1/chat/completions"
+    # This deployment rejects `max_tokens` outright and requires the newer name.
+    token_param: max_completion_tokens
+    timeout_seconds: 30
+
   - name: gemini
     model: gemini-2.0-flash
     api_key_env: GEMINI_API_KEY

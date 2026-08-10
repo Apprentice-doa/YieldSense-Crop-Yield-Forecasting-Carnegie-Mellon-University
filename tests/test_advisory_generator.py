@@ -338,6 +338,141 @@ def test_transient_outage_is_not_cached(payload, cache, verdict):
 
 
 # --------------------------------------------------------------------------- #
+# Provider wiring
+# --------------------------------------------------------------------------- #
+class _FakeResponse:
+    status_code = 200
+
+    def json(self):
+        return {"choices": [{"message": {"content": '{"ok": true}'}}]}
+
+
+@pytest.fixture
+def capture_post(monkeypatch):
+    """Intercept the HTTP call and hand back what would have been sent."""
+    sent = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        sent.update(url=url, headers=headers, payload=json, timeout=timeout)
+        return _FakeResponse()
+
+    monkeypatch.setattr(
+        "src.advisory.providers.http_providers.requests.post", fake_post
+    )
+    return sent
+
+
+def test_openai_provider_defaults_to_max_tokens(capture_post, monkeypatch):
+    from src.advisory.providers.http_providers import OpenAIProvider
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    provider = OpenAIProvider(
+        {
+            "name": "openai",
+            "model": "gpt-4o-mini",
+            "endpoint": "https://x/v1/chat/completions",
+        },
+        {"temperature": 0.3, "max_output_tokens": 800},
+    )
+    provider.generate_json("sys", "user")
+
+    assert "max_tokens" in capture_post["payload"]
+    assert "max_completion_tokens" not in capture_post["payload"]
+    assert capture_post["payload"]["temperature"] == 0.3
+
+
+def test_token_param_can_be_overridden_for_newer_models(capture_post, monkeypatch):
+    """The Azure gpt-5.2 deployment rejects `max_tokens` outright."""
+    from src.advisory.providers.http_providers import OpenAIProvider
+
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "test-key")
+    provider = OpenAIProvider(
+        {
+            "name": "azure_openai",
+            "model": "gpt-5.2",
+            "endpoint": "https://x/openai/v1/chat/completions",
+            "api_key_env": "AZURE_OPENAI_API_KEY",
+            "token_param": "max_completion_tokens",
+        },
+        {"max_output_tokens": 800},
+    )
+    provider.generate_json("sys", "user")
+
+    assert capture_post["payload"]["max_completion_tokens"] == 800
+    assert "max_tokens" not in capture_post["payload"]
+    assert provider.name == "azure_openai"
+
+
+def test_temperature_can_be_suppressed(capture_post, monkeypatch):
+    from src.advisory.providers.http_providers import OpenAIProvider
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    provider = OpenAIProvider(
+        {"model": "m", "endpoint": "https://x", "send_temperature": False},
+        {"temperature": 0.3},
+    )
+    provider.generate_json("sys", "user")
+    assert "temperature" not in capture_post["payload"]
+
+
+def test_endpoint_and_model_come_from_env_when_set(monkeypatch):
+    """Tenant resource and deployment names must not need committing."""
+    from src.advisory.providers.http_providers import OpenAIProvider
+
+    monkeypatch.setenv(
+        "AZURE_OPENAI_ENDPOINT", "https://real.services.ai.azure.com/openai/v1"
+    )
+    monkeypatch.setenv("AZURE_OPENAI_DEPLOYMENT", "my-deployment")
+    provider = OpenAIProvider(
+        {
+            "model": "placeholder",
+            "model_env": "AZURE_OPENAI_DEPLOYMENT",
+            "endpoint": "https://REPLACE-ME/chat/completions",
+            "endpoint_env": "AZURE_OPENAI_ENDPOINT",
+        },
+        {},
+    )
+    assert (
+        provider.endpoint
+        == "https://real.services.ai.azure.com/openai/v1/chat/completions"
+    )
+    assert provider.model == "my-deployment"
+
+
+def test_config_endpoint_is_used_when_env_is_absent(monkeypatch):
+    from src.advisory.providers.http_providers import OpenAIProvider
+
+    monkeypatch.delenv("AZURE_OPENAI_ENDPOINT", raising=False)
+    provider = OpenAIProvider(
+        {
+            "model": "m",
+            "endpoint": "https://configured/chat/completions",
+            "endpoint_env": "AZURE_OPENAI_ENDPOINT",
+        },
+        {},
+    )
+    assert provider.endpoint == "https://configured/chat/completions"
+
+
+def test_azure_provider_is_registered():
+    from src.advisory.providers.http_providers import PROVIDER_TYPES, OpenAIProvider
+
+    assert PROVIDER_TYPES["azure_openai"] is OpenAIProvider
+
+
+def test_configured_providers_all_resolve(monkeypatch):
+    """Every block in advisory_llm.yaml must build into a real provider."""
+    from src.advisory.generator import load_llm_config
+    from src.advisory.providers import build_provider
+
+    llm_config = load_llm_config()
+    for block in llm_config["providers"]:
+        assert build_provider(block, llm_config["generation"]) is not None, block[
+            "name"
+        ]
+
+
+# --------------------------------------------------------------------------- #
 # Prompt assembly
 # --------------------------------------------------------------------------- #
 def test_prompt_carries_the_verdict_and_permitted_numbers(verdict, rules):

@@ -220,8 +220,35 @@ python scripts/advisory_eval.py --review-sheet review.md     # native-speaker pa
 python scripts/advisory_eval.py --live                       # real providers, ~$0.25/1000
 ```
 
-Current offline result: **32/32 on every gate** — schema validity, numeric
-fidelity, safety, band consistency, SMS length, SMS instruction intact.
+Current result: **32/32 on every gate** — schema validity, numeric fidelity,
+safety, band consistency, SMS length, SMS instruction intact — both offline and
+against the live provider.
+
+### Live run (Azure AI Foundry, `gpt-5.2`)
+
+| | |
+|---|---|
+| Gates passed | 32/32 |
+| Generation path | 100% `llm` — no fallbacks, no provider errors |
+| Latency | p50 5.1 s, p95 6.0 s, max 9.0 s |
+| Cost | ~$0.25 per 1,000 advisories; SMS path free |
+
+Two prompt defects the live run exposed, both now fixed in `system.md`:
+
+1. **The body restated every action**, which the `What to do:` list then repeated
+   verbatim — the advisory was half duplicate text.
+2. **Band labels leaked mid-sentence** with their capital ("expected to be Above
+   typical"), and `baseline_ratio` appeared as a bare decimal ("0.64 of
+   typical") where a farmer reads percentages.
+
+Neither was catchable offline: `FakeProvider` returns what the test author
+wrote, so only a real model produces real wording defects. This is the argument
+for keeping a live run in the loop even though every gate was already green.
+
+**Latency note:** 5 seconds p50 is fine for a push advisory generated at
+forecast time and cached, and it is slow for a synchronous HTTP request. Since
+the advisory fires once per season and is cached, the endpoint mostly serves
+cache hits. If that changes, generate asynchronously via the trigger.
 
 ## Open questions
 
@@ -279,10 +306,36 @@ lose the advisory for the others.
 
 ### Configuring providers
 
-Set `GEMINI_API_KEY` and/or `OPENAI_API_KEY`. Both optional: with neither, the
-service still runs and serves rules-only text. Model choice and timeouts live in
+Order is Azure → Gemini → OpenAI, each skipped without a network call if its key
+is absent. **All are optional**: with none set the service still runs and serves
+rules-only text.
+
+```bash
+# .env (gitignored)
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_ENDPOINT=https://<resource>.services.ai.azure.com/openai/v1
+AZURE_OPENAI_DEPLOYMENT=gpt-5.2
+```
+
+The endpoint is the `/openai/v1` **base** — the provider appends
+`/chat/completions` itself. Endpoint and deployment come from the environment so
+no tenant-specific value is committed.
+
+Azure AI Foundry's `/openai/v1` route is OpenAI-compatible down to Bearer auth,
+so it reuses `OpenAIProvider`. Two things genuinely vary between deployments and
+are therefore config rather than constants:
+
+- `token_param` — this deployment **rejects `max_tokens` outright** and requires
+  `max_completion_tokens`. Verified against the live endpoint.
+- `send_temperature` — some reasoning models reject a non-default temperature.
+  `gpt-5.2` accepts it, so it stays on.
+
+Model choice and timeouts live in
 [`configs/advisory_llm.yaml`](../configs/advisory_llm.yaml), kept separate from
 the rules config so swapping a model does not invalidate the cache.
+
+The test suite unsets every provider key before hitting the API endpoints, so a
+developer with a live key exported cannot be billed by running `pytest`.
 
 Bump `rules_version` in `configs/advisory_rules.yaml` on **any** threshold
 change — it is part of the cache key and is stamped on every advisory.
@@ -309,6 +362,7 @@ change — it is part of the cache key and is stamped on every advisory.
   for the target language directly, but the separate translate-then-verify pass
   belongs with the native-speaker review in D5–D6. Until then, treat non-English
   output as untested.
-- **No live-provider test.** Everything is `FakeProvider`. The first real call
-  should be a D5–D6 smoke test with a budget cap.
 - **Cache is in-process.** Fine for the demo, wrong for multiple workers.
+- **Gemini is configured but unused** — no `GEMINI_API_KEY` yet. It sits second
+  in the chain and will be picked up automatically when a key appears; nothing
+  else needs changing.
