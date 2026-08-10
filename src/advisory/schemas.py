@@ -61,6 +61,28 @@ class PredictionPayload:
     farmer_lang: str = "en"
     region: Optional[str] = None
 
+    # Populated by sanitisation; surfaced on the Verdict so an injection attempt
+    # is visible in logs rather than silently swallowed.
+    input_flags: List[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Sanitise on construction, so every entry point is covered.
+
+        The API, the trigger and direct instantiation all land here. Doing this
+        at the edge instead would leave whichever caller we forgot exposed.
+        """
+        from .sanitize import sanitize_lang, sanitize_text
+
+        flags: List[str] = list(self.input_flags)
+        for name in ("field_id", "crop_type", "region", "yield_unit"):
+            clean, new_flags = sanitize_text(getattr(self, name), name)
+            setattr(self, name, clean)
+            flags.extend(new_flags)
+
+        self.farmer_lang, lang_flags = sanitize_lang(self.farmer_lang)
+        flags.extend(lang_flags)
+        self.input_flags = flags
+
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "PredictionPayload":
         known = {f for f in cls.__dataclass_fields__}

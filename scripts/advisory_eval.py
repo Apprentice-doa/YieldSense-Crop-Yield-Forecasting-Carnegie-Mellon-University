@@ -209,8 +209,6 @@ def write_translation_sheet(path: Path) -> None:
     finish this in a few minutes, and once they do, the whole 2G path is
     human-approved and costs nothing at runtime.
     """
-    import yaml
-
     from src.advisory.rules import load_config, load_i18n
 
     rules, _ = load_config()
@@ -243,8 +241,8 @@ def write_translation_sheet(path: Path) -> None:
         "Ask of each one:",
         "",
         "- Would a farmer in the region **use these words**?",
-        "- Is the instruction still **exact**? (\"irrigate within a few days\" must",
-        "  not become \"look after the crop\")",
+        '- Is the instruction still **exact**? ("irrigate within a few days" must',
+        '  not become "look after the crop")',
         "- Is it short enough to read on a basic phone screen?",
         "",
         "When a language is done, set `review_status: reviewed` and add your name",
@@ -271,9 +269,7 @@ def write_translation_sheet(path: Path) -> None:
             ]
             for key, source_text in source.items():
                 proposed = (entry.get(section) or {}).get(key, "**MISSING**")
-                lines.append(
-                    f"| `{key}` | {source_text} | {proposed} | |"
-                )
+                lines.append(f"| `{key}` | {source_text} | {proposed} | |")
             lines.append("")
 
     path.write_text("\n".join(lines), encoding="utf-8")

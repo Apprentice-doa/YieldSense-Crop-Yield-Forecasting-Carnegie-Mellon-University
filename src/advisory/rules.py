@@ -217,7 +217,9 @@ def build_verdict(
     """payload -> Verdict. Pure, deterministic, no I/O beyond config load."""
     rules, baselines = config or load_config()
 
-    flags = check_data_quality(payload, rules)
+    # Sanitisation flags travel with the data-quality flags so an injection
+    # attempt shows up in logs and in the API response, not just in a variable.
+    flags = check_data_quality(payload, rules) + list(payload.input_flags)
 
     crop = baselines["crops"].get(payload.crop_type)
     baseline_yield = float(crop["mean"]) if crop else None

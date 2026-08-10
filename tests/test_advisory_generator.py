@@ -207,7 +207,9 @@ def test_numeric_fidelity_accepts_faithful_renderings_of_a_ratio(rendering, verd
     one-decimal form sent a good advisory to the rules fallback in the live eval.
     """
     verdict.baseline_ratio = 0.901
-    assert check_numeric_fidelity(f"That is about {rendering} of typical.", verdict) == []
+    assert (
+        check_numeric_fidelity(f"That is about {rendering} of typical.", verdict) == []
+    )
 
 
 def test_numeric_fidelity_still_rejects_a_nearby_invention(verdict):
