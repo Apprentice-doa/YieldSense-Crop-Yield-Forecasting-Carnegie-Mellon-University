@@ -30,6 +30,13 @@ scipy>=1.11.0
 pillow>=10.0.0
 opencv-python>=4.8.0
 
+# API and database runtime
+fastapi>=0.110.0
+uvicorn>=0.23.0
+pydantic>=2.7.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
 # Testing and quality
 pytest>=7.4.0
 pytest-cov>=4.1.0
