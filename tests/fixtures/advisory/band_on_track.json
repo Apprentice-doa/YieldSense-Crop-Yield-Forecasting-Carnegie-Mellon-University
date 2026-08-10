@@ -1,0 +1,22 @@
+{
+  "field_id": "Field_54",
+  "crop_type": "Ginger",
+  "predicted_yield": 43.598,
+  "date_of_image": "12-12-2023",
+  "latitude": 25.513785,
+  "longitude": 91.375754,
+  "NDVI": 0.2257,
+  "GNDVI": 0.2296,
+  "SAVI": 0.3385,
+  "soil_moisture": 37.0332,
+  "temperature": 12.5227,
+  "rainfall": 12.9564,
+  "prediction_interval": [
+    40.11,
+    47.086
+  ],
+  "model_version": "fixture-v0",
+  "yield_unit": "units/ha",
+  "area_ha": 1.5,
+  "farmer_lang": "en"
+}

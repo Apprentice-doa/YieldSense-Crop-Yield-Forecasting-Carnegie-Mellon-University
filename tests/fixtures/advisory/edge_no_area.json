@@ -1,0 +1,22 @@
+{
+  "field_id": "Field_1",
+  "crop_type": "Rice",
+  "predicted_yield": 40.218,
+  "date_of_image": "01-01-2023",
+  "latitude": 22.625231,
+  "longitude": 88.497925,
+  "NDVI": 0.0602,
+  "GNDVI": 0.0848,
+  "SAVI": 0.0903,
+  "soil_moisture": 46.1194,
+  "temperature": 9.8842,
+  "rainfall": 1.6624,
+  "prediction_interval": [
+    37.001,
+    43.435
+  ],
+  "model_version": "fixture-v0",
+  "yield_unit": "units/ha",
+  "area_ha": null,
+  "farmer_lang": "en"
+}

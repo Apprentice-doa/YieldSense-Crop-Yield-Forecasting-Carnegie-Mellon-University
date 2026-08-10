@@ -1,0 +1,188 @@
+# YieldSense GenAI Advisory -- rules table
+#
+# The rules engine decides; the LLM only narrates. Every number, band and
+# quantity that appears in a farmer-facing advisory is computed here, in code,
+# from the prediction payload. The LLM is never asked to do agronomy.
+#
+# Bump `rules_version` on ANY threshold change: it is part of the advisory cache
+# key and is stamped onto every generated advisory for traceability.
+
+rules_version: "0.1.0"
+
+# --- Yield band -------------------------------------------------------------
+# ratio = predicted_yield / crop_baseline_mean (configs/crop_baselines.yaml).
+# Baseline is a single-season within-dataset mean, so bands are RELATIVE.
+yield_bands:
+  - id: critical
+    max_ratio: 0.70
+    severity: high
+    label: "Well below typical"
+  - id: below
+    min_ratio: 0.70
+    max_ratio: 0.90
+    severity: medium
+    label: "Below typical"
+  - id: on_track
+    min_ratio: 0.90
+    max_ratio: 1.10
+    severity: none
+    label: "About typical"
+  - id: above
+    min_ratio: 1.10
+    severity: none
+    label: "Above typical"
+
+# --- Confidence -------------------------------------------------------------
+# Relative width of the model's prediction interval, (hi - lo) / predicted.
+confidence:
+  high_max_width: 0.20
+  medium_max_width: 0.40   # above this -> low confidence, hedged wording
+
+# --- Data quality gates -----------------------------------------------------
+# Fail these and the affected rules are SUPPRESSED rather than fired on garbage.
+# Ranges are physical limits, not dataset percentiles.
+data_quality:
+  NDVI: { min: -1.0, max: 1.0, valid_min: 0.0 }
+  GNDVI: { min: -1.0, max: 1.0, valid_min: 0.0 }
+  SAVI: { min: -1.5, max: 1.5, valid_min: 0.0 }
+  soil_moisture: { min: 0.0, max: 100.0 }
+  temperature: { min: -20.0, max: 60.0 }
+  rainfall: { min: 0.0, max: 500.0 }
+
+# --- Driver rules -----------------------------------------------------------
+# Thresholds are dataset percentiles from configs/crop_baselines.yaml unless
+# marked `absolute`. Each rule emits at most one action.
+drivers:
+  - id: rainfall_low
+    feature: rainfall
+    op: lt
+    percentile: p25
+    severity: high
+    driver: "Rainfall is in the lowest quarter of the season range"
+    action: "Prioritise irrigation for this field and delay any top-dressing until after the next watering or rain"
+    urgency: soon
+
+  - id: rainfall_high
+    feature: rainfall
+    op: gt
+    percentile: p90
+    severity: medium
+    driver: "Rainfall is in the top 10% of the season range"
+    action: "Check field drainage and clear water channels to avoid waterlogging and nutrient leaching"
+    urgency: soon
+
+  - id: soil_moisture_low
+    feature: soil_moisture
+    op: lt
+    percentile: p10
+    severity: high
+    driver: "Soil moisture is very low"
+    action: "Irrigate within the next few days if water is available"
+    urgency: immediate
+
+  - id: soil_moisture_high
+    feature: soil_moisture
+    op: gt
+    percentile: p90
+    severity: low
+    driver: "Soil moisture is high"
+    action: "Hold off on irrigation and watch for signs of root disease"
+    urgency: routine
+
+  - id: ndvi_low
+    feature: NDVI
+    op: lt
+    percentile: p25
+    severity: high
+    requires_valid: [NDVI]
+    driver: "Vegetation greenness (NDVI) is below the typical range for this season"
+    action: "Scout the field on foot for pest damage, nutrient deficiency or patchy establishment, and note which parts of the field are worst"
+    urgency: soon
+
+  - id: ndvi_high
+    feature: NDVI
+    op: gt
+    percentile: p90
+    severity: none
+    requires_valid: [NDVI]
+    driver: "Vegetation greenness (NDVI) is strong"
+    action: "Crop canopy is developing well -- keep the current management and prepare for a normal or early harvest window"
+    urgency: routine
+
+  - id: heat_stress
+    feature: temperature
+    op: gt
+    absolute: 35.0
+    severity: high
+    driver: "Temperature is in the heat-stress range for most field crops"
+    action: "Water in the early morning or evening, and keep soil covered with mulch or residue to reduce surface temperature"
+    urgency: immediate
+
+  - id: cold_stress
+    feature: temperature
+    op: lt
+    absolute: 5.0
+    severity: medium
+    driver: "Temperature is low enough to slow crop growth"
+    action: "Expect slower development and a later harvest date; avoid irrigating just before the coldest part of the night"
+    urgency: routine
+
+# --- Conflict resolution ----------------------------------------------------
+# Two rules can fire on the same field and give opposite instructions. A farmer
+# told to irrigate AND to hold off on irrigating has been given nothing. When
+# every rule in `when_all` fires, only `keep` survives; the rest are suppressed.
+conflicts:
+  - id: dry_catchment_wet_field
+    when_all: [rainfall_low, soil_moisture_high]
+    keep: soil_moisture_high
+    reason: "Soil moisture is measured at the field; rainfall is a catchment-wide signal. The field measurement decides irrigation timing."
+
+  - id: wet_catchment_dry_field
+    when_all: [rainfall_high, soil_moisture_low]
+    keep: soil_moisture_low
+    reason: "Rain fell nearby but this field is dry -- the plant responds to water in its own root zone."
+
+# --- Post-harvest planning --------------------------------------------------
+# This is the differentiating output of the project: resource allocation and
+# post-harvest preparation, not just a yield number.
+#
+# Quantities require `area_ha` on the payload. Without it we emit qualitative
+# guidance only -- we never invent an area.
+post_harvest:
+  # `yield` in the training data is unitless. Until the ML track confirms units,
+  # the pipeline carries `yield_unit` on the payload and the engine echoes it
+  # verbatim. See docs/ADVISORY.md "Open: yield units".
+  default_yield_unit: "units/ha"
+  storage_headroom: 1.10        # plan storage 10% above expected volume
+  drying_days_per_band:
+    critical: 2
+    below: 2
+    on_track: 3
+    above: 4
+  labour_days_per_ha: 1.5
+  market_note_by_band:
+    critical: "Volume is likely to be low. Consider selling early rather than paying to store a small quantity, and check whether you need to hold grain back for household use first."
+    below: "Volume is likely to be below normal. Compare the cost of storage against current prices before committing to store."
+    on_track: "Volume looks normal. Storing for a better price is worth considering if you have dry, sealed storage."
+    above: "Volume looks above normal. Arrange storage and transport early -- local prices often fall when many farmers harvest at once."
+
+# --- Safety -----------------------------------------------------------------
+# Hard boundaries. The generator injects these into the system prompt AND
+# post-checks the output against `banned_topics`.
+safety:
+  disclaimer: "This is an AI-generated estimate based on satellite and weather data, not a guarantee. Confirm with your local extension officer before making costly decisions."
+  banned_topics:
+    - specific pesticide product names or dosages
+    - specific fertiliser dosages or application rates
+    - financial, credit or loan advice
+    - land tenure or legal advice
+    - medical or veterinary advice
+  defer_to: "local agricultural extension officer"
+
+# --- Delivery ---------------------------------------------------------------
+delivery:
+  sms_max_chars: 160            # single 2G SMS segment, per the 2G/SMS objective
+  languages: [en, sw, rw, fr]   # English, Kiswahili, Kinyarwanda, French
+  default_language: en
+  max_actions_in_sms: 1
+  max_actions_in_full: 4

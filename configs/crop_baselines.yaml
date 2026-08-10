@@ -1,0 +1,226 @@
+_generated_by: scripts/build_crop_baselines.py
+_source: data/external/yield_prediction_dataset.csv
+_rows: 1625
+_caveat: Single-season (2023-01 to 2023-05) within-dataset baseline. NOT a multi-year
+  district average. Advisory copy must not claim otherwise.
+global_yield:
+  mean: 40.493
+  std: 8.174
+crops:
+  Bajra:
+    n: 61
+    mean: 39.032
+    std: 7.95
+    p10: 30.641
+    p90: 51.172
+  Barley:
+    n: 64
+    mean: 37.122
+    std: 7.784
+    p10: 29.357
+    p90: 47.786
+  Black Pepper:
+    n: 47
+    mean: 42.435
+    std: 8.712
+    p10: 31.686
+    p90: 54.379
+  Cardamom:
+    n: 41
+    mean: 44.74
+    std: 9.386
+    p10: 36.014
+    p90: 55.804
+  Cashew Nut:
+    n: 44
+    mean: 42.34
+    std: 8.389
+    p10: 29.534
+    p90: 52.508
+  Coconut:
+    n: 39
+    mean: 45.653
+    std: 1.811
+    p10: 42.705
+    p90: 46.947
+  Coffee:
+    n: 51
+    mean: 44.587
+    std: 8.677
+    p10: 32.55
+    p90: 55.794
+  Cotton:
+    n: 56
+    mean: 38.252
+    std: 7.338
+    p10: 29.639
+    p90: 48.929
+  Ginger:
+    n: 50
+    mean: 42.666
+    std: 10.043
+    p10: 32.079
+    p90: 49.724
+  Groundnut:
+    n: 51
+    mean: 41.088
+    std: 6.953
+    p10: 32.623
+    p90: 50.317
+  Jowar:
+    n: 56
+    mean: 40.323
+    std: 8.399
+    p10: 29.285
+    p90: 53.17
+  Linseed:
+    n: 59
+    mean: 40.753
+    std: 7.691
+    p10: 31.463
+    p90: 50.626
+  Maize:
+    n: 56
+    mean: 39.739
+    std: 9.404
+    p10: 28.763
+    p90: 53.723
+  Millets:
+    n: 61
+    mean: 40.688
+    std: 7.699
+    p10: 32.122
+    p90: 52.706
+  Mustard:
+    n: 63
+    mean: 41.438
+    std: 8.242
+    p10: 30.38
+    p90: 52.435
+  Oil Palm:
+    n: 44
+    mean: 40.031
+    std: 8.982
+    p10: 29.798
+    p90: 54.49
+  Pulses:
+    n: 57
+    mean: 36.522
+    std: 7.394
+    p10: 28.302
+    p90: 44.13
+  Ragi:
+    n: 56
+    mean: 40.901
+    std: 6.481
+    p10: 32.639
+    p90: 49.148
+  Rice:
+    n: 54
+    mean: 43.741
+    std: 7.258
+    p10: 34.28
+    p90: 52.465
+  Rubber:
+    n: 42
+    mean: 42.869
+    std: 7.05
+    p10: 34.664
+    p90: 50.285
+  Saffron:
+    n: 69
+    mean: 39.916
+    std: 6.622
+    p10: 30.47
+    p90: 46.192
+  Sesame:
+    n: 58
+    mean: 39.523
+    std: 8.226
+    p10: 28.692
+    p90: 51.052
+  Sorghum:
+    n: 58
+    mean: 36.855
+    std: 8.509
+    p10: 28.376
+    p90: 47.785
+  Soybean:
+    n: 61
+    mean: 38.007
+    std: 6.636
+    p10: 31.569
+    p90: 47.563
+  Sugarcane:
+    n: 54
+    mean: 37.253
+    std: 8.805
+    p10: 28.889
+    p90: 48.233
+  Sunflower:
+    n: 55
+    mean: 35.565
+    std: 7.448
+    p10: 29.024
+    p90: 46.678
+  Tea:
+    n: 46
+    mean: 46.537
+    std: 7.179
+    p10: 40.093
+    p90: 56.916
+  Tobacco:
+    n: 60
+    mean: 41.438
+    std: 6.86
+    p10: 32.127
+    p90: 50.652
+  Turmeric:
+    n: 49
+    mean: 39.276
+    std: 7.493
+    p10: 29.381
+    p90: 47.538
+  Wheat:
+    n: 63
+    mean: 41.735
+    std: 7.338
+    p10: 32.093
+    p90: 51.394
+features:
+  NDVI:
+    p10: 0.124
+    p25: 0.237
+    p50: 0.361
+    p75: 0.505
+    p90: 0.653
+  GNDVI:
+    p10: 0.112
+    p25: 0.303
+    p50: 0.412
+    p75: 0.517
+    p90: 0.603
+  SAVI:
+    p10: 0.186
+    p25: 0.356
+    p50: 0.542
+    p75: 0.757
+    p90: 0.979
+  soil_moisture:
+    p10: 13.686
+    p25: 19.535
+    p50: 26.238
+    p75: 33.296
+    p90: 43.823
+  temperature:
+    p10: 7.03
+    p25: 12.588
+    p50: 19.982
+    p75: 26.181
+    p90: 33.784
+  rainfall:
+    p10: 5.327
+    p25: 6.27
+    p50: 8.009
+    p75: 13.095
+    p90: 15.027
