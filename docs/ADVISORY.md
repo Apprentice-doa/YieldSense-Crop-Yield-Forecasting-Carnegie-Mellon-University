@@ -53,6 +53,68 @@ PredictionPayload  ──►  build_verdict()  ──►  Verdict  ──┬─�
   confidence, driver rules, conflict resolution, post-harvest plan, renderers.
 - [`prompts/`](../src/advisory/prompts/) — `system.md` (hard constraints),
   `advisory_user.md` (verdict + permitted numbers), `translate.md`.
+- [`providers/`](../src/advisory/providers/) — Gemini and OpenAI over plain HTTP
+  (`requests`, no vendor SDKs), plus `FakeProvider` for offline tests.
+- [`validation.py`](../src/advisory/validation.py) — shape, numeric fidelity,
+  safety and substance checks applied to every generated response.
+- [`generator.py`](../src/advisory/generator.py) — the escalation ladder.
+- [`cache.py`](../src/advisory/cache.py) — TTL + LRU, keyed on payload hash.
+- [`trigger.py`](../src/advisory/trigger.py) — `on_prediction_complete()` and
+  sink registration.
+- [`api.py`](../src/advisory/api.py) — FastAPI router. Imported explicitly, never
+  from the package `__init__`, so the engine stays framework-free.
+
+## Generation cannot fail
+
+`generate_advisory()` escalates and always terminates at something sendable:
+
+```
+cache hit                                   -> return
+provider 1, attempt 1                       -> validate -> return if clean
+provider 1, attempt 2 (repair, with errors) -> validate -> return if clean
+provider 2, attempts 1..2                   -> validate -> return if clean
+rules-only advisory                         -> always succeeds
+```
+
+Every generated response is validated before it can reach a farmer. A failure
+does not just get rejected — the specific errors are fed back as a repair hint,
+so the second attempt is told exactly which figure was invented or which banned
+topic it touched. `generated_by` on the returned `Advisory` records the path
+taken (`llm`, `llm_fallback_rules`, `rules`), which is what D5–D6 measures.
+
+Four independent checks in `validation.py`:
+
+| Check | Rejects |
+|---|---|
+| shape | missing keys, over-length headline or body |
+| numeric | any figure not in `Verdict.numeric_facts()` |
+| safety | pesticide/fertiliser dosing, financial or legal advice, "five-year average", "guarantee" |
+| substance | actions added, dropped, or reordered relative to the verdict |
+| band | a below-typical forecast narrated as good news |
+
+**The SMS is never LLM-written**, even when generation succeeds. It stays
+rules-rendered: deterministic, free, and exactly within one 160-char segment.
+
+### Cost and failure controls
+
+- `max_llm_calls_per_advisory` (default 4) caps total calls across *all*
+  providers and retries, so a fleet of misbehaving providers cannot multiply.
+- A non-retryable error (missing API key, 401) does not retry that provider.
+- A transient provider outage is **not** cached — otherwise a 30-second blip
+  would pin the rules fallback for the 90-day TTL.
+- With no key configured at all, providers are skipped without a network call.
+
+### Cache key
+
+`sha256(payload) + rules_version + lang`. Consequences, each tested:
+
+- A revised forecast changes the payload hash → misses cleanly and regenerates.
+  No stale advice on a corrected number.
+- A rules change bumps `rules_version` → invalidates exactly what it should.
+- Each language is cached separately.
+
+Storage is in-process. Redis means implementing `get`/`set` on `AdvisoryCache`;
+`REDIS_URL` is already in `.env.example`.
 
 ## What the rules engine guarantees
 
@@ -114,13 +176,53 @@ Settled: the advisory fires **once per season**, at forecast time. The cache key
 (`payload hash + rules_version + lang`) still supports re-running it if a
 forecast is revised.
 
-## Regenerating the configs
+## Running it
 
 ```bash
 python scripts/build_crop_baselines.py     # -> configs/crop_baselines.yaml
 python scripts/build_advisory_fixtures.py  # -> tests/fixtures/advisory/*.json
-pytest tests/test_advisory_rules.py
+pytest tests/test_advisory_rules.py tests/test_advisory_generator.py \
+       tests/test_advisory_trigger.py tests/test_advisory_api.py --no-cov
 ```
+
+The whole suite runs offline. No API key is needed and none is used — provider
+behaviour is scripted with `FakeProvider`, which is how failure modes we cannot
+trigger reliably against a live API (timeouts, malformed JSON, invented figures,
+banned topics) are covered at all.
+
+### Wiring into the app
+
+```python
+from src.advisory.api import router as advisory_router
+app.include_router(advisory_router)
+```
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/v1/advisory` | Full advisory for one forecast |
+| `POST /api/v1/advisory/sms` | 160-char version only — costs no LLM call |
+| `GET /api/v1/advisory/health` | Readiness, live providers, cache stats |
+
+### Wiring the trigger
+
+```python
+from src.advisory.trigger import register_sink, on_prediction_complete
+
+register_sink(save_advisory_to_db)
+register_sink(queue_sms)
+
+on_prediction_complete(prediction_dict)   # once per season, at forecast time
+```
+
+A failing sink is logged and skipped — one broken downstream service must not
+lose the advisory for the others.
+
+### Configuring providers
+
+Set `GEMINI_API_KEY` and/or `OPENAI_API_KEY`. Both optional: with neither, the
+service still runs and serves rules-only text. Model choice and timeouts live in
+[`configs/advisory_llm.yaml`](../configs/advisory_llm.yaml), kept separate from
+the rules config so swapping a model does not invalidate the cache.
 
 Bump `rules_version` in `configs/advisory_rules.yaml` on **any** threshold
 change — it is part of the cache key and is stamped on every advisory.
@@ -128,12 +230,23 @@ change — it is part of the cache key and is stamped on every advisory.
 ## Status against the work plan
 
 - **D1–D2 Scope prompts & advisory rules** — done: rules table, both contracts,
-  prompt templates, 10 fixtures, 97 tests passing.
-- **D3–D4 Build & trigger LLM** — next: provider adapter (Gemini primary, OpenAI
-  fallback), JSON-schema-constrained generation with one repair retry, fallback
-  to rules text, `POST /api/v1/advisory`, on-prediction-complete hook, cache.
-- **D5–D6 Test on real predictions** — golden set of 20–30 real forecasts, eval
-  harness (numeric fidelity, schema validity, rule coverage, latency, cost),
-  native-speaker review.
-- **D7–D8 QA & polish** — red-team prompts, safety post-check against
-  `banned_topics`, season performance report, observability, demo script.
+  prompt templates, 10 fixtures.
+- **D3–D4 Build & trigger LLM** — done: Gemini + OpenAI adapters, validation with
+  repair retry, rules fallback, cache, `POST /api/v1/advisory`, `/sms`,
+  `/health`, on-prediction-complete trigger with sinks. 143 tests passing.
+- **D5–D6 Test on real predictions** — next: golden set of 20–30 real forecasts
+  from the ML track, eval harness (numeric fidelity, schema validity, rule
+  coverage, latency, cost per 1000, `generated_by` mix), live-provider smoke
+  test, native-speaker review of the four languages.
+- **D7–D8 QA & polish** — red-team prompts, season performance report,
+  observability, demo script with pre-cached farms.
+
+### Not yet built, deliberately
+
+- **Translation is not wired in.** `translate.md` exists and the generator asks
+  for the target language directly, but the separate translate-then-verify pass
+  belongs with the native-speaker review in D5–D6. Until then, treat non-English
+  output as untested.
+- **No live-provider test.** Everything is `FakeProvider`. The first real call
+  should be a D5–D6 smoke test with a budget cap.
+- **Cache is in-process.** Fine for the demo, wrong for multiple workers.
