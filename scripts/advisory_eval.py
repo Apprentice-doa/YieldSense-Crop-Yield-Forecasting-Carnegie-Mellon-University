@@ -37,6 +37,29 @@ from typing import Any, Dict, List
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+
+def load_env() -> None:
+    """Load .env so --live picks up provider keys.
+
+    Entry points load environment, libraries do not -- src/advisory/ reads
+    os.environ and stays free of dotenv. Parsed by hand so a missing
+    python-dotenv cannot break the offline path.
+    """
+    import os
+
+    env_file = REPO_ROOT / ".env"
+    if not env_file.exists():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip())
+
+
+load_env()
+
 from src.advisory.generator import build_user_prompt, generate_advisory  # noqa: E402
 from src.advisory.rules import build_verdict, load_config  # noqa: E402
 from src.advisory.schemas import PredictionPayload  # noqa: E402

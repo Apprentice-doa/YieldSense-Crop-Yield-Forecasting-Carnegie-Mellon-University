@@ -87,16 +87,39 @@ class GeminiProvider(LLMProvider):
 
 
 class OpenAIProvider(LLMProvider):
-    """OpenAI chat completions."""
+    """OpenAI chat completions, and any endpoint that speaks the same protocol.
+
+    Azure AI Foundry's `/openai/v1` route is OpenAI-compatible down to Bearer
+    auth, so it reuses this class. Two things do vary between deployments and
+    are therefore config, not constants:
+
+    - the token limit parameter (`max_tokens` on older models,
+      `max_completion_tokens` on newer ones, which reject the old name outright)
+    - whether `temperature` is accepted at all
+
+    Endpoint and model can come from environment variables so that a tenant's
+    resource name and deployment name never land in a committed file.
+    """
 
     name = "openai"
 
     def __init__(self, config: Dict[str, Any], generation: Dict[str, Any]):
-        self.model = config["model"]
-        self.endpoint = config["endpoint"]
+        self.name = config.get("name", "openai")
+        self.model = os.environ.get(config.get("model_env", ""), "") or config["model"]
+        self.endpoint = self._resolve_endpoint(config)
         self.api_key_env = config.get("api_key_env", "OPENAI_API_KEY")
         self.timeout = config.get("timeout_seconds", 20)
+        self.token_param = config.get("token_param", "max_tokens")
+        self.send_temperature = config.get("send_temperature", True)
         self.generation = generation
+
+    @staticmethod
+    def _resolve_endpoint(config: Dict[str, Any]) -> str:
+        base = os.environ.get(config.get("endpoint_env", ""), "").strip()
+        if base:
+            # Env holds the base (".../openai/v1"); we own the route.
+            return f"{base.rstrip('/')}/chat/completions"
+        return config["endpoint"]
 
     def generate_json(self, system: str, user: str) -> Dict[str, Any]:
         payload = {
@@ -105,10 +128,11 @@ class OpenAIProvider(LLMProvider):
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "temperature": self.generation.get("temperature", 0.3),
-            "max_tokens": self.generation.get("max_output_tokens", 800),
+            self.token_param: self.generation.get("max_output_tokens", 800),
             "response_format": {"type": "json_object"},
         }
+        if self.send_temperature:
+            payload["temperature"] = self.generation.get("temperature", 0.3)
         try:
             resp = requests.post(
                 self.endpoint,
@@ -137,7 +161,12 @@ class OpenAIProvider(LLMProvider):
         return self.parse_json_payload(text)
 
 
-PROVIDER_TYPES = {"gemini": GeminiProvider, "openai": OpenAIProvider}
+# azure_openai speaks the OpenAI protocol, so it reuses that adapter.
+PROVIDER_TYPES = {
+    "gemini": GeminiProvider,
+    "openai": OpenAIProvider,
+    "azure_openai": OpenAIProvider,
+}
 
 
 def build_provider(

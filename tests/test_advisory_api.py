@@ -22,6 +22,20 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "advisory"
 
 
+@pytest.fixture(autouse=True)
+def no_live_providers(monkeypatch):
+    """CI must never spend money.
+
+    These endpoints call the generator with the configured providers. If a
+    developer has exported a real key, the suite would quietly bill them, so we
+    unset every provider key for the duration of the test.
+    """
+    from src.advisory.generator import load_llm_config
+
+    for block in load_llm_config().get("providers", []):
+        monkeypatch.delenv(block.get("api_key_env", ""), raising=False)
+
+
 @pytest.fixture(scope="module")
 def client():
     app = FastAPI()
@@ -63,7 +77,10 @@ def test_health_reports_provider_and_rules_state(client):
     body = resp.json()
     assert body["status"] == "healthy"
     assert body["rules_version"]
-    assert {p["name"] for p in body["providers"]} == {"gemini", "openai"}
+    names = [p["name"] for p in body["providers"]]
+    assert names, "health must list the configured providers"
+    assert names[0] == "azure_openai", "first entry is the primary provider"
+    assert all({"name", "model", "configured"} <= set(p) for p in body["providers"])
     assert "degraded_to_rules_only" in body
 
 
