@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from .cache import AdvisoryCache, advisory_cache_key
+from .metrics import AdvisoryMetrics, collector
 from .providers import LLMError, LLMProvider, build_provider, has_credentials
 from .rules import (
     build_verdict,
@@ -257,6 +258,7 @@ def generate_advisory(
     llm_config = load_llm_config()
     lang = lang or payload.farmer_lang or rules["delivery"]["default_language"]
 
+    started = time.perf_counter()
     verdict = build_verdict(payload)
 
     cache_enabled = use_cache and llm_config["cache"]["enabled"] and cache is not None
@@ -265,11 +267,14 @@ def generate_advisory(
         cached = cache.get(key)
         if cached is not None:
             logger.info("advisory: cache hit for %s", payload.field_id)
-            return _advisory_from_cached(cached, verdict, rules)
+            advisory = _advisory_from_cached(cached, verdict, rules)
+            _record(advisory, verdict, payload, started, cache_hit=True)
+            return advisory
 
     active = _providers_for(llm_config, providers)
     all_failures: List[str] = []
-    calls_remaining = [llm_config["cost_guard"]["max_llm_calls_per_advisory"]]
+    budget = llm_config["cost_guard"]["max_llm_calls_per_advisory"]
+    calls_remaining = [budget]
 
     for provider in active:
         # Always generate and validate in English first. The safety check only
@@ -301,6 +306,15 @@ def generate_advisory(
         advisory = _advisory_from_response(response, verdict, rules, out_lang, provider)
         if cache_enabled:
             cache.set(key, _cacheable(advisory))
+        _record(
+            advisory,
+            verdict,
+            payload,
+            started,
+            llm_calls=budget - calls_remaining[0],
+            translated=out_lang != "en",
+            failures=all_failures,
+        )
         return advisory
 
     if all_failures:
@@ -319,10 +333,67 @@ def generate_advisory(
     fallback = render_rules_advisory(verdict, rules)
     fallback.generated_by = "llm_fallback_rules" if active else "rules"
     fallback.lang = "en"  # rules copy is authored in English only
+    fallback.sms_text = render_sms(verdict, rules, lang="en")
     if cache_enabled and not active:
         # Cache the no-provider case; do not cache a transient provider outage.
         cache.set(key, _cacheable(fallback))
+    _record(
+        fallback,
+        verdict,
+        payload,
+        started,
+        llm_calls=budget - calls_remaining[0],
+        failures=all_failures,
+    )
     return fallback
+
+
+def _record(
+    advisory: Advisory,
+    verdict: Verdict,
+    payload: PredictionPayload,
+    started: float,
+    *,
+    llm_calls: int = 0,
+    translated: bool = False,
+    cache_hit: bool = False,
+    failures: Optional[List[str]] = None,
+) -> None:
+    """Emit one metrics record. Never let telemetry break an advisory."""
+    try:
+        failures = failures or []
+        # Re-render rather than thread the prompt through every call site. It is
+        # string formatting, and without it the cost figure is meaningless.
+        prompt_chars = 0
+        if llm_calls:
+            rules, _ = load_config()
+            prompt_chars = len(build_user_prompt(verdict, "en", rules)) * llm_calls
+
+        collector.record(
+            AdvisoryMetrics(
+                field_id=verdict.field_id,
+                crop_type=verdict.crop_type,
+                lang=advisory.lang,
+                band=verdict.band,
+                confidence=verdict.confidence,
+                generated_by=advisory.generated_by,
+                rules_version=verdict.rules_version,
+                schema_version=verdict.schema_version,
+                llm_model=advisory.llm_model,
+                model_version=payload.model_version,
+                latency_ms=(time.perf_counter() - started) * 1000,
+                llm_calls=llm_calls,
+                translated=translated,
+                cache_hit=cache_hit,
+                prompt_chars=prompt_chars,
+                output_chars=len(advisory.headline) + len(advisory.body),
+                validation_failures=[f for f in failures if "validation" in f],
+                provider_failures=[f for f in failures if "validation" not in f],
+                data_quality_flags=verdict.data_quality_flags,
+            )
+        )
+    except Exception:  # noqa: BLE001 - metrics must never break generation
+        logger.exception("advisory: failed to record metrics for %s", verdict.field_id)
 
 
 def _advisory_from_response(

@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 
 from .cache import AdvisoryCache
 from .generator import generate_advisory, load_llm_config
+from .metrics import collector
 from .providers import has_credentials
 from .rules import load_config
 from .schemas import PredictionPayload
@@ -161,4 +162,14 @@ async def health() -> Dict[str, Any]:
         # An advisory is still deliverable with zero providers configured.
         "degraded_to_rules_only": not any(p["configured"] for p in providers),
         "cache": _cache.stats(),
+        # `metrics.degraded_rate` is the number to watch. Requests always
+        # succeed by design, so success rate says nothing; a rising degraded
+        # rate is how a failing provider or an over-strict validator shows up.
+        "metrics": collector.snapshot(),
     }
+
+
+@router.get("/metrics")
+async def metrics() -> Dict[str, Any]:
+    """Operational counters, plus the most recent advisories for debugging."""
+    return {"summary": collector.snapshot(), "recent": collector.recent(limit=20)}

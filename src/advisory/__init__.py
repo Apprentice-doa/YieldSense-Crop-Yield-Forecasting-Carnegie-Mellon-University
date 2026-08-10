@@ -14,6 +14,7 @@ Import it explicitly with `from src.advisory.api import router`.
 
 from .cache import AdvisoryCache, advisory_cache_key
 from .generator import generate_advisory
+from .metrics import AdvisoryMetrics, collector
 from .rules import advise, build_verdict, render_rules_advisory, render_sms
 from .schemas import (
     SCHEMA_VERSION,
@@ -30,6 +31,8 @@ __all__ = [
     "advise",
     "build_verdict",
     "generate_advisory",
+    "AdvisoryMetrics",
+    "collector",
     "on_prediction_complete",
     "register_sink",
     "render_rules_advisory",
