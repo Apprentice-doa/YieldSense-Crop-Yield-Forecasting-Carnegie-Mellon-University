@@ -70,6 +70,64 @@ def test_sms_fits_one_segment(path, config, rules):
 
 
 @pytest.mark.parametrize("path", FIXTURES, ids=ids(FIXTURES))
+def test_sms_carries_the_instruction_intact(path, config, rules):
+    """The 2G message must not lose part of the instruction to truncation.
+
+    Regression: before per-rule `sms_action`, 51% of SMS across the dataset had
+    the action text cut mid-sentence.
+    """
+    verdict = build_verdict(load_payload(path), config)
+    sms = render_sms(verdict, rules)
+
+    in_season = [a for a in verdict.actions if a.stage == "in_season"]
+    top = in_season[0] if in_season else verdict.actions[0]
+    expected = top.sms_action or top.action
+    assert expected in sms, f"{path.name}: instruction was truncated in {sms!r}"
+
+
+@pytest.mark.parametrize("path", FIXTURES, ids=ids(FIXTURES))
+def test_every_advisory_has_an_in_season_action(path, config):
+    """A healthy field gets an explicit all-clear, never silence."""
+    verdict = build_verdict(load_payload(path), config)
+    assert [a for a in verdict.actions if a.stage == "in_season"]
+
+
+def test_all_clear_fires_only_when_nothing_else_does(config, rules):
+    """The all-clear must never sit alongside a real problem."""
+    healthy = PredictionPayload(
+        field_id="Field_healthy",
+        crop_type="Rice",
+        predicted_yield=43.7,
+        NDVI=0.36,
+        GNDVI=0.38,
+        SAVI=0.54,
+        soil_moisture=28.0,
+        temperature=20.0,
+        rainfall=9.5,
+        area_ha=1.0,
+    )
+    verdict = build_verdict(healthy, config)
+    fired = {a.rule_id for a in verdict.actions}
+    assert "all_clear" in fired
+    assert len([a for a in verdict.actions if a.stage == "in_season"]) == 1
+
+    troubled = build_verdict(load_payload(FIXTURE_DIR / "band_critical.json"), config)
+    assert "all_clear" not in {a.rule_id for a in troubled.actions}
+
+
+def test_every_driver_rule_has_an_sms_variant(config):
+    """A rule without a short form will truncate on the 2G path."""
+    rules, _ = config
+    for rule in rules["drivers"]:
+        assert rule.get("sms_action"), f"{rule['id']} has no sms_action"
+        assert len(rule["sms_action"]) <= 100, (
+            f"{rule['id']}: sms_action is {len(rule['sms_action'])} chars, too "
+            f"long to fit beside the headline in 160"
+        )
+    assert rules["all_clear"].get("sms_action")
+
+
+@pytest.mark.parametrize("path", FIXTURES, ids=ids(FIXTURES))
 def test_sms_never_ends_mid_word(path, config, rules):
     sms = render_sms(build_verdict(load_payload(path), config), rules)
     assert not re.search(r"[a-z]{2}\.$", sms) or sms.rstrip(".").split()[-1] in {

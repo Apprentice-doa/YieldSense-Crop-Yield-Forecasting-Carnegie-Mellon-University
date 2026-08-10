@@ -80,6 +80,10 @@ class Action:
     urgency: str  # immediate | soon | routine
     severity: str  # high | medium | low | none
     stage: str = "in_season"  # in_season | post_harvest
+    # Short form for the 2G path. Without it, half of all SMS messages lose
+    # part of the instruction to truncation -- and SMS is the only thing some
+    # farmers ever see.
+    sms_action: Optional[str] = None
 
     def sort_key(self) -> tuple:
         return (

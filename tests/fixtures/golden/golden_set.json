@@ -1,0 +1,903 @@
+{
+  "_generated_by": "scripts/build_advisory_golden_set.py",
+  "_caveat": "Predicted yields are the dataset's recorded yields, used as stand-in forecasts: the advisory is what is under test, not the model. Prediction intervals and area_ha are synthetic.",
+  "count": 32,
+  "items": [
+    {
+      "id": "critical_1",
+      "stratum": "critical",
+      "why_included": "critical band, Tea",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_26",
+        "crop_type": "Tea",
+        "predicted_yield": 29.775,
+        "date_of_image": "16-01-2023",
+        "latitude": 27.118176,
+        "longitude": 88.179901,
+        "NDVI": 0.1188,
+        "GNDVI": 0.0737,
+        "SAVI": 0.1782,
+        "soil_moisture": 46.0881,
+        "temperature": 5.8771,
+        "rainfall": 5.1225,
+        "prediction_interval": [
+          27.393,
+          32.157
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "critical_2",
+      "stratum": "critical",
+      "why_included": "critical band, Cardamom",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_58",
+        "crop_type": "Cardamom",
+        "predicted_yield": 29.504,
+        "date_of_image": "16-04-2023",
+        "latitude": 9.913245,
+        "longitude": 76.374253,
+        "NDVI": 0.1214,
+        "GNDVI": 0.0903,
+        "SAVI": 0.1821,
+        "soil_moisture": 45.2157,
+        "temperature": 27.2641,
+        "rainfall": 5.1065,
+        "prediction_interval": [
+          27.143,
+          31.864
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "critical_3",
+      "stratum": "critical",
+      "why_included": "critical band, Mustard",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_37",
+        "crop_type": "Mustard",
+        "predicted_yield": 27.355,
+        "date_of_image": "05-01-2023",
+        "latitude": 27.144954,
+        "longitude": 75.242098,
+        "NDVI": 0.1302,
+        "GNDVI": 0.2398,
+        "SAVI": 0.1954,
+        "soil_moisture": 37.4898,
+        "temperature": 6.9604,
+        "rainfall": 4.8337,
+        "prediction_interval": [
+          25.166,
+          29.543
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "critical_4",
+      "stratum": "critical",
+      "why_included": "critical band, Wheat",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_6",
+        "crop_type": "Wheat",
+        "predicted_yield": 27.814,
+        "date_of_image": "16-04-2023",
+        "latitude": 29.219328,
+        "longitude": 76.203133,
+        "NDVI": 0.174,
+        "GNDVI": 0.3186,
+        "SAVI": 0.261,
+        "soil_moisture": 33.0177,
+        "temperature": 26.1899,
+        "rainfall": 5.0388,
+        "prediction_interval": [
+          25.588,
+          30.039
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "critical_5",
+      "stratum": "critical",
+      "why_included": "critical band, Jowar",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_15",
+        "crop_type": "Jowar",
+        "predicted_yield": 26.958,
+        "date_of_image": "15-06-2023",
+        "latitude": 23.406252,
+        "longitude": 77.319258,
+        "NDVI": 0.13,
+        "GNDVI": 0.265,
+        "SAVI": 0.195,
+        "soil_moisture": 36.2062,
+        "temperature": 28.6977,
+        "rainfall": 4.7726,
+        "prediction_interval": [
+          24.801,
+          29.115
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "critical_6",
+      "stratum": "critical",
+      "why_included": "critical band, Cashew Nut",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_63",
+        "crop_type": "Cashew Nut",
+        "predicted_yield": 28.617,
+        "date_of_image": "31-05-2023",
+        "latitude": 15.780087,
+        "longitude": 77.842564,
+        "NDVI": 0.1844,
+        "GNDVI": 0.2928,
+        "SAVI": 0.2766,
+        "soil_moisture": 34.2298,
+        "temperature": 38.3454,
+        "rainfall": 5.1931,
+        "prediction_interval": [
+          26.328,
+          30.906
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "below_1",
+      "stratum": "below",
+      "why_included": "below band, Jowar",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_15",
+        "crop_type": "Jowar",
+        "predicted_yield": 28.293,
+        "date_of_image": "05-01-2023",
+        "latitude": 23.406252,
+        "longitude": 77.319258,
+        "NDVI": 0.1672,
+        "GNDVI": 0.2711,
+        "SAVI": 0.2507,
+        "soil_moisture": 35.5144,
+        "temperature": 5.2689,
+        "rainfall": 5.0905,
+        "prediction_interval": [
+          26.03,
+          30.557
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "below_2",
+      "stratum": "below",
+      "why_included": "below band, Cotton",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_22",
+        "crop_type": "Cotton",
+        "predicted_yield": 26.854,
+        "date_of_image": "31-05-2023",
+        "latitude": 19.560944,
+        "longitude": 76.463326,
+        "NDVI": 0.1704,
+        "GNDVI": 0.3713,
+        "SAVI": 0.2555,
+        "soil_moisture": 30.3644,
+        "temperature": 30.9454,
+        "rainfall": 4.8826,
+        "prediction_interval": [
+          24.705,
+          29.002
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "below_3",
+      "stratum": "below",
+      "why_included": "below band, Coffee",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_28",
+        "crop_type": "Coffee",
+        "predicted_yield": 31.309,
+        "date_of_image": "16-04-2023",
+        "latitude": 13.191498,
+        "longitude": 77.525814,
+        "NDVI": 0.3116,
+        "GNDVI": 0.4346,
+        "SAVI": 0.4673,
+        "soil_moisture": 25.6905,
+        "temperature": 20.6732,
+        "rainfall": 5.9965,
+        "prediction_interval": [
+          28.804,
+          33.813
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "below_4",
+      "stratum": "below",
+      "why_included": "below band, Maize",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_8",
+        "crop_type": "Maize",
+        "predicted_yield": 28.022,
+        "date_of_image": "31-05-2023",
+        "latitude": 15.171501,
+        "longitude": 75.828088,
+        "NDVI": 0.1878,
+        "GNDVI": 0.3732,
+        "SAVI": 0.2817,
+        "soil_moisture": 30.0911,
+        "temperature": 30.4629,
+        "rainfall": 10.3702,
+        "prediction_interval": [
+          25.78,
+          30.264
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "below_5",
+      "stratum": "below",
+      "why_included": "below band, Rice",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 30.87,
+        "date_of_image": "16-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.214,
+        "GNDVI": 0.222,
+        "SAVI": 0.3209,
+        "soil_moisture": 37.5425,
+        "temperature": 13.9671,
+        "rainfall": 8.4463,
+        "prediction_interval": [
+          28.401,
+          33.34
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "below_6",
+      "stratum": "below",
+      "why_included": "below band, Sesame",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_76",
+        "crop_type": "Sesame",
+        "predicted_yield": 27.918,
+        "date_of_image": "15-06-2023",
+        "latitude": 23.481863,
+        "longitude": 77.416522,
+        "NDVI": 0.1706,
+        "GNDVI": 0.3037,
+        "SAVI": 0.2558,
+        "soil_moisture": 33.8131,
+        "temperature": 34.9959,
+        "rainfall": 5.0435,
+        "prediction_interval": [
+          25.684,
+          30.151
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "on_track_1",
+      "stratum": "on_track",
+      "why_included": "on_track band, Bajra",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_10",
+        "crop_type": "Bajra",
+        "predicted_yield": 35.137,
+        "date_of_image": "27-12-2023",
+        "latitude": 26.856339,
+        "longitude": 75.975327,
+        "NDVI": 0.4356,
+        "GNDVI": 0.4961,
+        "SAVI": 0.6533,
+        "soil_moisture": 21.2851,
+        "temperature": 14.5252,
+        "rainfall": 6.9599,
+        "prediction_interval": [
+          32.326,
+          37.948
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "on_track_2",
+      "stratum": "on_track",
+      "why_included": "on_track band, Sugarcane",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_20",
+        "crop_type": "Sugarcane",
+        "predicted_yield": 33.541,
+        "date_of_image": "11-12-2023",
+        "latitude": 19.083678,
+        "longitude": 74.522204,
+        "NDVI": 0.406,
+        "GNDVI": 0.526,
+        "SAVI": 0.609,
+        "soil_moisture": 20.0559,
+        "temperature": 15.8293,
+        "rainfall": 9.4473,
+        "prediction_interval": [
+          30.858,
+          36.224
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "on_track_3",
+      "stratum": "on_track",
+      "why_included": "on_track band, Soybean",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_18",
+        "crop_type": "Soybean",
+        "predicted_yield": 34.23,
+        "date_of_image": "03-02-2023",
+        "latitude": 26.385564,
+        "longitude": 74.611885,
+        "NDVI": 0.3808,
+        "GNDVI": 0.4186,
+        "SAVI": 0.5711,
+        "soil_moisture": 25.8025,
+        "temperature": 6.3765,
+        "rainfall": 6.6522,
+        "prediction_interval": [
+          31.491,
+          36.968
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "on_track_4",
+      "stratum": "on_track",
+      "why_included": "on_track band, Cotton",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_22",
+        "crop_type": "Cotton",
+        "predicted_yield": 34.47,
+        "date_of_image": "15-02-2023",
+        "latitude": 19.560944,
+        "longitude": 76.463326,
+        "NDVI": 0.4276,
+        "GNDVI": 0.5187,
+        "SAVI": 0.6413,
+        "soil_moisture": 20.2102,
+        "temperature": 22.6018,
+        "rainfall": 6.8357,
+        "prediction_interval": [
+          31.712,
+          37.227
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "on_track_5",
+      "stratum": "on_track",
+      "why_included": "on_track band, Barley",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_32",
+        "crop_type": "Barley",
+        "predicted_yield": 33.479,
+        "date_of_image": "01-01-2023",
+        "latitude": 26.785898,
+        "longitude": 75.941381,
+        "NDVI": 0.3837,
+        "GNDVI": 0.4737,
+        "SAVI": 0.5754,
+        "soil_moisture": 22.9576,
+        "temperature": 10.2256,
+        "rainfall": 6.5488,
+        "prediction_interval": [
+          30.8,
+          36.157
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "on_track_6",
+      "stratum": "on_track",
+      "why_included": "on_track band, Tea",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_26",
+        "crop_type": "Tea",
+        "predicted_yield": 41.992,
+        "date_of_image": "31-01-2023",
+        "latitude": 27.118176,
+        "longitude": 88.179901,
+        "NDVI": 0.6883,
+        "GNDVI": 0.6809,
+        "SAVI": 1.0323,
+        "soil_moisture": 9.2628,
+        "temperature": 9.139,
+        "rainfall": 8.7831,
+        "prediction_interval": [
+          38.632,
+          45.351
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "above_1",
+      "stratum": "above",
+      "why_included": "above band, Pulses",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_79",
+        "crop_type": "Pulses",
+        "predicted_yield": 40.187,
+        "date_of_image": "17-03-2023",
+        "latitude": 25.335971,
+        "longitude": 83.148647,
+        "NDVI": 0.138,
+        "GNDVI": 0.1947,
+        "SAVI": 0.2069,
+        "soil_moisture": 39.7117,
+        "temperature": 23.2247,
+        "rainfall": 11.9234,
+        "prediction_interval": [
+          36.972,
+          43.402
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "above_2",
+      "stratum": "above",
+      "why_included": "above band, Oil Palm",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_89",
+        "crop_type": "Oil Palm",
+        "predicted_yield": 44.068,
+        "date_of_image": "01-01-2023",
+        "latitude": 11.244024,
+        "longitude": 76.686921,
+        "NDVI": 0.8213,
+        "GNDVI": 0.7271,
+        "SAVI": 1.2318,
+        "soil_moisture": 5.5472,
+        "temperature": 16.232,
+        "rainfall": 9.8641,
+        "prediction_interval": [
+          40.542,
+          47.593
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "above_3",
+      "stratum": "above",
+      "why_included": "above band, Saffron",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_71",
+        "crop_type": "Saffron",
+        "predicted_yield": 43.963,
+        "date_of_image": "31-05-2023",
+        "latitude": 34.383462,
+        "longitude": 74.885327,
+        "NDVI": -0.0584,
+        "GNDVI": -0.0694,
+        "SAVI": -0.0876,
+        "soil_moisture": 55.2057,
+        "temperature": 6.0554,
+        "rainfall": 11.152,
+        "prediction_interval": [
+          40.446,
+          47.48
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "above_4",
+      "stratum": "above",
+      "why_included": "above band, Rubber",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_68",
+        "crop_type": "Rubber",
+        "predicted_yield": 47.218,
+        "date_of_image": "16-01-2023",
+        "latitude": 9.863944,
+        "longitude": 76.367529,
+        "NDVI": -0.2896,
+        "GNDVI": -0.45,
+        "SAVI": -0.4341,
+        "soil_moisture": 77.0019,
+        "temperature": 16.2542,
+        "rainfall": 9.9026,
+        "prediction_interval": [
+          43.441,
+          50.996
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "above_5",
+      "stratum": "above",
+      "why_included": "above band, Black Pepper",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_55",
+        "crop_type": "Black Pepper",
+        "predicted_yield": 46.759,
+        "date_of_image": "14-08-2023",
+        "latitude": 9.856373,
+        "longitude": 76.29572,
+        "NDVI": 0.4047,
+        "GNDVI": 0.3434,
+        "SAVI": 0.607,
+        "soil_moisture": 29.3932,
+        "temperature": 40.1256,
+        "rainfall": 6.3982,
+        "prediction_interval": [
+          43.019,
+          50.5
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "above_6",
+      "stratum": "above",
+      "why_included": "above band, Rice",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_3",
+        "crop_type": "Rice",
+        "predicted_yield": 48.251,
+        "date_of_image": "15-06-2023",
+        "latitude": 30.870543,
+        "longitude": 76.70893,
+        "NDVI": 0.3685,
+        "GNDVI": 0.4073,
+        "SAVI": 0.5526,
+        "soil_moisture": 26.5013,
+        "temperature": 19.3352,
+        "rainfall": 16.4109,
+        "prediction_interval": [
+          44.391,
+          52.111
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "dq_invalid_ndvi",
+      "stratum": "edge",
+      "why_included": "cloud/water contaminated scene -- vegetation rules must be suppressed",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": -1.0,
+        "GNDVI": -1.0,
+        "SAVI": 0.0903,
+        "soil_moisture": 46.1194,
+        "temperature": 9.8842,
+        "rainfall": 1.6624,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "dq_missing_weather",
+      "stratum": "edge",
+      "why_included": "weather feed dropped -- weather rules must be suppressed",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": null,
+        "temperature": null,
+        "rainfall": null,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "no_area",
+      "stratum": "edge",
+      "why_included": "subsistence plot with no recorded area -- no invented quantities",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": 46.1194,
+        "temperature": 9.8842,
+        "rainfall": 1.6624,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": null,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "low_confidence",
+      "stratum": "edge",
+      "why_included": "wide interval -- advisory must hedge",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": 46.1194,
+        "temperature": 9.8842,
+        "rainfall": 1.6624,
+        "prediction_interval": [
+          20.109,
+          60.327
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "unknown_crop",
+      "stratum": "edge",
+      "why_included": "crop with no baseline -- must degrade, not guess",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Teff",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": 46.1194,
+        "temperature": 9.8842,
+        "rainfall": 1.6624,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "heat_stress",
+      "stratum": "edge",
+      "why_included": "absolute-threshold rule, rare in this dataset",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": 46.1194,
+        "temperature": 41.2,
+        "rainfall": 1.6624,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "cold_stress",
+      "stratum": "edge",
+      "why_included": "absolute-threshold rule the stratified sample never hits",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": 46.1194,
+        "temperature": 2.5,
+        "rainfall": 1.6624,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    },
+    {
+      "id": "water_conflict",
+      "stratum": "edge",
+      "why_included": "dry catchment + wet field -- conflict resolution must fire",
+      "interval_is_synthetic": true,
+      "payload": {
+        "field_id": "Field_1",
+        "crop_type": "Rice",
+        "predicted_yield": 40.218,
+        "date_of_image": "01-01-2023",
+        "latitude": 22.625231,
+        "longitude": 88.497925,
+        "NDVI": 0.0602,
+        "GNDVI": 0.0848,
+        "SAVI": 0.0903,
+        "soil_moisture": 60.0,
+        "temperature": 9.8842,
+        "rainfall": 1.0,
+        "prediction_interval": [
+          37.001,
+          43.435
+        ],
+        "model_version": "golden-v0",
+        "yield_unit": "units/ha",
+        "area_ha": 1.5,
+        "farmer_lang": "en"
+      }
+    }
+  ]
+}
