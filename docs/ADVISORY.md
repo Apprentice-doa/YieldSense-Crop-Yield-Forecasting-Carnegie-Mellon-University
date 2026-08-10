@@ -241,9 +241,17 @@ Two prompt defects the live run exposed, both now fixed in `system.md`:
    typical"), and `baseline_ratio` appeared as a bare decimal ("0.64 of
    typical") where a farmer reads percentages.
 
-Neither was catchable offline: `FakeProvider` returns what the test author
-wrote, so only a real model produces real wording defects. This is the argument
-for keeping a live run in the loop even though every gate was already green.
+A third defect surfaced on a later live run, and it was **ours, not the
+model's**: `baseline_ratio` of 0.901 was correctly written as "90.1%", but the
+numeric check only tolerated the rounded integer "90" and threw the advisory
+away. A correct advisory was being discarded 3% of the time. Fixed by accepting
+every faithful rendering of a ratio, with a test that the check still rejects a
+nearby invention.
+
+None of the three was catchable offline: `FakeProvider` returns what the test
+author wrote, so only a real model produces real wording — and only real wording
+exposes a validator that is too strict. This is the argument for keeping a live
+run in the loop even though every automated gate was already green.
 
 **Latency note:** 5 seconds p50 is fine for a push advisory generated at
 forecast time and cached, and it is slow for a synchronous HTTP request. Since
@@ -347,21 +355,62 @@ change — it is part of the cache key and is stamped on every advisory.
 - **D3–D4 Build & trigger LLM** — done: Gemini + OpenAI adapters, validation with
   repair retry, rules fallback, cache, `POST /api/v1/advisory`, `/sms`,
   `/health`, on-prediction-complete trigger with sinks. 143 tests passing.
-- **D5–D6 Test on real predictions** — mostly done offline: 1,625-row coverage
-  run, 32-item stratified golden set, eval harness, CI gates, review sheet.
-  Two fixes shipped from it (SMS truncation, no-action advisories).
-  **Outstanding:** live-provider smoke test (needs a key), native-speaker review
-  of the four languages (needs translation wired), and re-running against the
-  ML track's real forecasts once they exist.
+- **D5–D6 Test on real predictions** — done, except for two things needing other
+  people. 1,625-row coverage run, 32-item stratified golden set, eval harness,
+  CI gates, live provider verified at 32/32, translation wired and verified.
+  Four defects found and fixed along the way: SMS truncation (51%), no-action
+  advisories (40%), duplicated action text, and an over-strict numeric check.
+  **Outstanding:** native-speaker sign-off on the three languages (sheets are
+  ready), and re-running against the ML track's real forecasts once they exist —
+  the harness takes them unchanged.
 - **D7–D8 QA & polish** — red-team prompts, season performance report,
   observability, demo script with pre-cached farms.
 
+## Translation
+
+**Generate in English, then translate.** Not generate-directly-in-language —
+`check_safety` matches English terms and is blind to a banned topic introduced in
+Kinyarwanda. English is the only language we can actually police, so the English
+passes every gate first and translation is confined to rephrasing approved copy.
+
+A translation is then verified in its own right: numbers preserved (digits are
+language-independent), action count unchanged, and not silently returned
+untranslated. **If verification fails, the farmer gets the verified English** —
+correct English beats a translation we cannot check.
+
+Non-English costs 2 calls and ~11 s, against 1 call and ~5 s for English. Both
+are cached, and the advisory fires once per season.
+
+### SMS strings are translated at build time, not per message
+
+There are only ~15 short strings per language. Translating them once
+(`scripts/build_sms_translations.py` → `configs/advisory_i18n.yaml`) means:
+
+- a native speaker reviews **one small file** in a few minutes, not hundreds of
+  near-identical messages
+- the 2G path stays deterministic and **free**
+- a reviewed language is never overwritten by re-running the script
+
+Fallback is per string, so a partially translated language still sends a usable
+message. Verified across all 1,625 rows: `en` max 143 chars, `sw` 144, `rw` 122,
+`fr` 143 — no truncation in any language.
+
+`review_status` on each language is **not a gate**. It exists so the report can
+state honestly which languages a human has actually checked. All three are
+currently `unreviewed`.
+
+Review sheets:
+
+```bash
+python scripts/advisory_eval.py --translation-sheet docs/advisory_translation_review.md
+python scripts/advisory_eval.py --review-sheet docs/advisory_review_sheet.md
+```
+
 ### Not yet built, deliberately
 
-- **Translation is not wired in.** `translate.md` exists and the generator asks
-  for the target language directly, but the separate translate-then-verify pass
-  belongs with the native-speaker review in D5–D6. Until then, treat non-English
-  output as untested.
+- **No language has been reviewed by a native speaker.** The strings are machine
+  translation, and the review sheet is ready. Until someone signs off, non-English
+  output is plausible but unverified by a human.
 - **Cache is in-process.** Fine for the demo, wrong for multiple workers.
 - **Gemini is configured but unused** — no `GEMINI_API_KEY` yet. It sits second
   in the chain and will be picked up automatically when a key appears; nothing

@@ -77,9 +77,14 @@ def _tolerated_number_forms(value: float) -> set:
         f"{value:.1f}".rstrip("0").rstrip("."),
         f"{value:.2f}".rstrip("0").rstrip("."),
     }
-    # Percentages: the rules renderer states the baseline ratio as e.g. "68%".
+    # Percentages. `baseline_ratio` is the only sub-10 fact we carry, and both
+    # "90%" and "90.1%" are faithful renderings of 0.901 -- accepting only the
+    # rounded integer discarded correct advisories in the live eval.
     if 0 < value < 10:
-        forms.add(f"{round(value * 100):g}")
+        pct = value * 100
+        forms.add(f"{round(pct):g}")
+        forms.add(f"{pct:.1f}".rstrip("0").rstrip("."))
+        forms.add(f"{pct:.2f}".rstrip("0").rstrip("."))
     return {f for f in forms if f}
 
 
@@ -190,6 +195,64 @@ def check_band_consistency(response: Dict[str, Any], verdict: Verdict) -> List[s
             "plainly rather than softening it"
         ]
     return []
+
+
+def check_translation(
+    translated: Dict[str, Any], source: Dict[str, Any], verdict: Verdict
+) -> List[str]:
+    """A translation must preserve the facts, not just the gist.
+
+    Numbers are language-independent, so the numeric check transfers directly.
+    What does NOT transfer is `check_safety`: it matches English terms and is
+    blind to a banned topic introduced in Kinyarwanda. That is why translation
+    is constrained to *rephrasing already-validated English* rather than being
+    asked to write afresh -- see prompts/translate.md.
+    """
+    errors: List[str] = []
+
+    for key in ("headline", "body", "actions"):
+        if key not in translated:
+            errors.append(f"missing '{key}' in the translation")
+
+    headline = translated.get("headline")
+    if not isinstance(headline, str) or not headline.strip():
+        errors.append("'headline' must be a non-empty string")
+
+    body = translated.get("body")
+    if not isinstance(body, str) or not body.strip():
+        errors.append("'body' must be a non-empty string")
+
+    src_actions = source.get("actions") or []
+    new_actions = translated.get("actions")
+    if not isinstance(new_actions, list):
+        errors.append("'actions' must be a list")
+    elif len(new_actions) != len(src_actions):
+        errors.append(
+            f"translated {len(new_actions)} actions but the source has "
+            f"{len(src_actions)}; translate each one, add none, drop none"
+        )
+    elif not all(isinstance(a, str) and a.strip() for a in new_actions):
+        errors.append("every translated action must be a non-empty string")
+
+    text = " ".join(
+        [str(translated.get("headline", "")), str(translated.get("body", ""))]
+        + [str(a) for a in (new_actions if isinstance(new_actions, list) else [])]
+    )
+    errors += [
+        e.replace("the figure", "the translated figure")
+        for e in check_numeric_fidelity(text, verdict)
+    ]
+
+    # A "translation" identical to the source usually means the model returned
+    # the input unchanged, which is a silent failure rather than a translation.
+    if (
+        translated.get("body")
+        and translated.get("body") == source.get("body")
+        and translated.get("headline") == source.get("headline")
+    ):
+        errors.append("the text is unchanged; it was not translated")
+
+    return errors
 
 
 def validate_response(

@@ -202,6 +202,84 @@ def report(results: List[Dict[str, Any]], rules: Dict[str, Any]) -> int:
     return failures
 
 
+def write_translation_sheet(path: Path) -> None:
+    """The SMS strings, in every language, for native-speaker review.
+
+    ~15 strings per language rather than hundreds of messages: a reviewer can
+    finish this in a few minutes, and once they do, the whole 2G path is
+    human-approved and costs nothing at runtime.
+    """
+    import yaml
+
+    from src.advisory.rules import load_config, load_i18n
+
+    rules, _ = load_config()
+    i18n = load_i18n()
+    if not i18n:
+        print("no configs/advisory_i18n.yaml yet -- run build_sms_translations.py")
+        return
+
+    english = {
+        "band_labels": {
+            **{b["id"]: b["label"] for b in rules["yield_bands"]},
+            "unknown": "No baseline available for this crop",
+        },
+        "sms_actions": {
+            **{r["id"]: r["sms_action"] for r in rules["drivers"]},
+            "all_clear": rules["all_clear"]["sms_action"],
+        },
+        "ui_strings": {"what_to_do": "What to do:"},
+    }
+
+    lines = [
+        "# SMS translation review",
+        "",
+        "These are the exact strings sent over 2G. For many farmers this is the",
+        "**only** form of the advisory they will ever see, so a vague or overly",
+        "formal translation is a real failure, not a style preference.",
+        "",
+        "For each row, either tick it or write the correction in the last column.",
+        "",
+        "Ask of each one:",
+        "",
+        "- Would a farmer in the region **use these words**?",
+        "- Is the instruction still **exact**? (\"irrigate within a few days\" must",
+        "  not become \"look after the crop\")",
+        "- Is it short enough to read on a basic phone screen?",
+        "",
+        "When a language is done, set `review_status: reviewed` and add your name",
+        "to `reviewed_by` in `configs/advisory_i18n.yaml`. A reviewed language is",
+        "never overwritten by the translation script.",
+        "",
+    ]
+
+    for lang, entry in (i18n.get("languages") or {}).items():
+        lines += [
+            f"## {entry.get('name', lang)} (`{lang}`)",
+            "",
+            f"Status: **{entry.get('review_status', 'unknown')}**"
+            + (f" — {entry['reviewed_by']}" if entry.get("reviewed_by") else ""),
+            f" · machine translation by `{entry.get('machine_translated_by', '?')}`",
+            "",
+        ]
+        for section, source in english.items():
+            lines += [
+                f"### {section}",
+                "",
+                "| key | English | Proposed | Correction (leave blank if OK) |",
+                "|---|---|---|---|",
+            ]
+            for key, source_text in source.items():
+                proposed = (entry.get(section) or {}).get(key, "**MISSING**")
+                lines.append(
+                    f"| `{key}` | {source_text} | {proposed} | |"
+                )
+            lines.append("")
+
+    path.write_text("\n".join(lines), encoding="utf-8")
+    print(f"wrote translation review sheet to {path}")
+
+
 def write_review_sheet(results: List[Dict[str, Any]], path: Path) -> None:
     """A sheet a native speaker or agronomist can actually fill in."""
     lines = [
@@ -255,8 +333,17 @@ def main() -> None:
         help="call real providers (costs money; requires an API key)",
     )
     ap.add_argument("--review-sheet", type=Path, default=None)
+    ap.add_argument(
+        "--translation-sheet",
+        type=Path,
+        default=None,
+        help="write the SMS strings out for native-speaker review",
+    )
     ap.add_argument("--json", type=Path, default=None)
     args = ap.parse_args()
+
+    if args.translation_sheet:
+        write_translation_sheet(args.translation_sheet)
 
     doc = json.loads(args.golden.read_text(encoding="utf-8"))
     items = doc["items"]
