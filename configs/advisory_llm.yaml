@@ -1,0 +1,44 @@
+# GenAI Advisory -- LLM generation config
+#
+# Kept separate from advisory_rules.yaml on purpose: swapping a model or nudging
+# a timeout must NOT bump `rules_version`, because that would needlessly
+# invalidate every cached advisory. Rules changes affect what we say; this file
+# only affects how it is worded.
+
+# Primary provider, then fallbacks in order. The last resort is always the
+# rules-only renderer, which needs no provider at all.
+providers:
+  - name: gemini
+    model: gemini-2.0-flash
+    api_key_env: GEMINI_API_KEY
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    timeout_seconds: 20
+
+  - name: openai
+    model: gpt-4o-mini
+    api_key_env: OPENAI_API_KEY
+    endpoint: "https://api.openai.com/v1/chat/completions"
+    timeout_seconds: 20
+
+generation:
+  temperature: 0.3          # low: we are rephrasing a fixed verdict, not creating
+  max_output_tokens: 800
+  max_attempts_per_provider: 2   # 1 initial + 1 repair retry on validation failure
+  retry_on_status: [429, 500, 502, 503, 504]
+  backoff_seconds: [1, 3]
+
+limits:
+  headline_max_chars: 80
+  body_max_chars: 900
+
+# Hard ceiling per advisory across all providers and retries. Exceeding it
+# returns the rules-only advisory rather than spending more.
+cost_guard:
+  max_llm_calls_per_advisory: 4
+
+cache:
+  enabled: true
+  # Advisory fires once per season, so entries are long-lived. The key is
+  # payload hash + rules_version + lang, so a revised forecast misses cleanly.
+  ttl_seconds: 7776000       # 90 days
+  max_entries: 10000
