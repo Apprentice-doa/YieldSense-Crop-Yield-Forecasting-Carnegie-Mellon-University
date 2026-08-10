@@ -156,10 +156,28 @@ def evaluate_drivers(
             urgency=rule["urgency"],
             severity=rule["severity"],
             stage="in_season",
+            sms_action=rule.get("sms_action"),
         )
         for rule in fired
     ]
     drivers = [rule["driver"] for rule in fired]
+
+    # A healthy field still deserves a straight answer rather than silence.
+    if not actions and "all_clear" in rules:
+        cfg = rules["all_clear"]
+        actions.append(
+            Action(
+                rule_id="all_clear",
+                action=cfg["action"],
+                why=cfg["driver"],
+                urgency=cfg["urgency"],
+                severity=cfg["severity"],
+                stage="in_season",
+                sms_action=cfg.get("sms_action"),
+            )
+        )
+        drivers.append(cfg["driver"])
+
     return actions, drivers, suppressed
 
 
@@ -298,7 +316,9 @@ def render_sms(verdict: Verdict, rules: Dict[str, Any]) -> str:
     if remaining <= 12:
         return head[:limit]
 
-    tail = top.action
+    # Prefer the authored short form. Truncating the full action loses part of
+    # the instruction, and on 2G the SMS is the whole advisory.
+    tail = top.sms_action or top.action
     if len(tail) > remaining:
         # Cut on a word boundary: "...note which pa." is worse than a short
         # sentence, and this is the only text some farmers ever see.

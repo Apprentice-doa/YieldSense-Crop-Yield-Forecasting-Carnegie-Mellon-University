@@ -7,7 +7,9 @@
 # Bump `rules_version` on ANY threshold change: it is part of the advisory cache
 # key and is stamped onto every generated advisory for traceability.
 
-rules_version: "0.1.0"
+# 0.2.0 -- added all_clear + per-rule sms_action after the D5-D6 coverage run
+#          found 51% of SMS truncated and 40% of advisories with no action.
+rules_version: "0.2.0"
 
 # --- Yield band -------------------------------------------------------------
 # ratio = predicted_yield / crop_baseline_mean (configs/crop_baselines.yaml).
@@ -60,6 +62,7 @@ drivers:
     severity: high
     driver: "Rainfall is in the lowest quarter of the season range"
     action: "Prioritise irrigation for this field and delay any top-dressing until after the next watering or rain"
+    sms_action: "Rain is low. Irrigate if you can, and delay top-dressing until after watering."
     urgency: soon
 
   - id: rainfall_high
@@ -69,6 +72,7 @@ drivers:
     severity: medium
     driver: "Rainfall is in the top 10% of the season range"
     action: "Check field drainage and clear water channels to avoid waterlogging and nutrient leaching"
+    sms_action: "Heavy rain. Check drainage and clear your water channels."
     urgency: soon
 
   - id: soil_moisture_low
@@ -78,6 +82,7 @@ drivers:
     severity: high
     driver: "Soil moisture is very low"
     action: "Irrigate within the next few days if water is available"
+    sms_action: "Soil is very dry. Irrigate within a few days if water is available."
     urgency: immediate
 
   - id: soil_moisture_high
@@ -87,6 +92,7 @@ drivers:
     severity: low
     driver: "Soil moisture is high"
     action: "Hold off on irrigation and watch for signs of root disease"
+    sms_action: "Soil is wet. Hold off irrigation and watch for root disease."
     urgency: routine
 
   - id: ndvi_low
@@ -97,6 +103,7 @@ drivers:
     requires_valid: [NDVI]
     driver: "Vegetation greenness (NDVI) is below the typical range for this season"
     action: "Scout the field on foot for pest damage, nutrient deficiency or patchy establishment, and note which parts of the field are worst"
+    sms_action: "Crop looks less green than usual. Walk the field and check for pests or dry patches."
     urgency: soon
 
   - id: ndvi_high
@@ -107,6 +114,7 @@ drivers:
     requires_valid: [NDVI]
     driver: "Vegetation greenness (NDVI) is strong"
     action: "Crop canopy is developing well -- keep the current management and prepare for a normal or early harvest window"
+    sms_action: "Crop is growing well. Keep your current management."
     urgency: routine
 
   - id: heat_stress
@@ -116,6 +124,7 @@ drivers:
     severity: high
     driver: "Temperature is in the heat-stress range for most field crops"
     action: "Water in the early morning or evening, and keep soil covered with mulch or residue to reduce surface temperature"
+    sms_action: "Very hot. Water early morning or evening and mulch to cool the soil."
     urgency: immediate
 
   - id: cold_stress
@@ -125,7 +134,20 @@ drivers:
     severity: medium
     driver: "Temperature is low enough to slow crop growth"
     action: "Expect slower development and a later harvest date; avoid irrigating just before the coldest part of the night"
+    sms_action: "Cold is slowing growth. Expect a later harvest."
     urgency: routine
+
+# --- All clear --------------------------------------------------------------
+# 40% of real rows trigger no driver rule at all. Sending those farmers only
+# post-harvest boilerplate reads as a broken product, so a healthy field gets an
+# explicit confirmation instead. We do NOT loosen thresholds to manufacture
+# advice: false alarms erode trust faster than silence does.
+all_clear:
+  driver: "Satellite and weather signals for this field look normal for the season"
+  action: "No problems found in this field's satellite and weather signals. Continue your current management and prepare for harvest in the normal window."
+  sms_action: "No problems found. Continue as normal and prepare for harvest."
+  urgency: routine
+  severity: none
 
 # --- Conflict resolution ----------------------------------------------------
 # Two rules can fire on the same field and give opposite instructions. A farmer
