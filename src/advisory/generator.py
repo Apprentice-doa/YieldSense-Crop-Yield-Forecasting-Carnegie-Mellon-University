@@ -29,9 +29,15 @@ import yaml
 
 from .cache import AdvisoryCache, advisory_cache_key
 from .providers import LLMError, LLMProvider, build_provider, has_credentials
-from .rules import build_verdict, load_config, render_rules_advisory, render_sms
+from .rules import (
+    build_verdict,
+    load_config,
+    render_rules_advisory,
+    render_sms,
+    strings_for,
+)
 from .schemas import Advisory, PredictionPayload, Verdict
-from .validation import ValidationResult, validate_response
+from .validation import ValidationResult, check_translation, validate_response
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +110,67 @@ def build_user_prompt(
 # --------------------------------------------------------------------------- #
 # Generation
 # --------------------------------------------------------------------------- #
+def translate_payload(
+    source: Dict[str, Any],
+    verdict: Verdict,
+    lang: str,
+    provider: LLMProvider,
+    llm_config: Dict[str, Any],
+    calls_remaining: List[int],
+) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+    """Translate an already-validated English advisory. Returns (translated, failures).
+
+    Translate-then-verify, rather than generating directly in the target
+    language. The English is validated first by every check we have -- including
+    the safety check, which only matches English terms -- and translation is then
+    constrained to rephrasing it. Generating afresh in Kinyarwanda would put
+    farmer-facing copy beyond the reach of our only safety net.
+    """
+    import json
+
+    failures: List[str] = []
+    system = "You are a translator. Follow the instructions exactly."
+    max_attempts = llm_config["generation"].get("max_attempts_per_provider", 2)
+    repair_hint = ""
+
+    for attempt in range(max_attempts):
+        if calls_remaining[0] <= 0:
+            failures.append("cost guard: no LLM calls left for translation")
+            return None, failures
+        calls_remaining[0] -= 1
+
+        prompt = load_prompt("translate.md").format(
+            language_name=LANGUAGE_NAMES.get(lang, lang),
+            lang=lang,
+            advisory_json=json.dumps(source, indent=2, ensure_ascii=False),
+        )
+        if repair_hint:
+            prompt += (
+                "\n\n# Your previous attempt was rejected\n\n"
+                f"Fix exactly these problems and return the corrected JSON:\n\n"
+                f"{repair_hint}\n"
+            )
+
+        try:
+            translated = provider.generate_json(system, prompt)
+        except LLMError as exc:
+            failures.append(f"translate {lang} attempt {attempt + 1}: {exc}")
+            if not exc.retryable:
+                return None, failures
+            continue
+
+        errors = check_translation(translated, source, verdict)
+        if not errors:
+            return translated, failures
+
+        failures.append(
+            f"translate {lang} attempt {attempt + 1} failed: {'; '.join(errors)}"
+        )
+        repair_hint = "\n".join(f"- {e}" for e in errors)
+
+    return None, failures
+
+
 def _providers_for(
     llm_config: Dict[str, Any], override: Optional[List[LLMProvider]]
 ) -> List[LLMProvider]:
@@ -205,15 +272,36 @@ def generate_advisory(
     calls_remaining = [llm_config["cost_guard"]["max_llm_calls_per_advisory"]]
 
     for provider in active:
+        # Always generate and validate in English first. The safety check only
+        # matches English terms, so English is the only language we can actually
+        # police; translation then rephrases already-validated copy.
         response, failures = _try_provider(
-            provider, verdict, lang, rules, llm_config, calls_remaining
+            provider, verdict, "en", rules, llm_config, calls_remaining
         )
         all_failures.extend(failures)
-        if response is not None:
-            advisory = _advisory_from_response(response, verdict, rules, lang, provider)
-            if cache_enabled:
-                cache.set(key, _cacheable(advisory))
-            return advisory
+        if response is None:
+            continue
+
+        out_lang = "en"
+        if lang != "en":
+            translated, t_failures = translate_payload(
+                response, verdict, lang, provider, llm_config, calls_remaining
+            )
+            all_failures.extend(t_failures)
+            if translated is not None:
+                response, out_lang = translated, lang
+            else:
+                # Correct English beats a translation we could not verify.
+                logger.warning(
+                    "advisory: translation to %s failed for %s, serving English",
+                    lang,
+                    payload.field_id,
+                )
+
+        advisory = _advisory_from_response(response, verdict, rules, out_lang, provider)
+        if cache_enabled:
+            cache.set(key, _cacheable(advisory))
+        return advisory
 
     if all_failures:
         logger.warning(
@@ -247,15 +335,21 @@ def _advisory_from_response(
     body = response["body"].strip()
     actions = response.get("actions") or []
     if actions:
-        body = body + "\n\nWhat to do:\n" + "\n".join(f"- {a}" for a in actions)
+        # The heading is ours, not the model's, so it must be translated too --
+        # otherwise a Kinyarwanda advisory carries an English section header.
+        heading = (strings_for(lang).get("ui_strings") or {}).get(
+            "what_to_do", "What to do:"
+        )
+        body = body + f"\n\n{heading}\n" + "\n".join(f"- {a}" for a in actions)
 
     return Advisory(
         field_id=verdict.field_id,
         lang=lang,
         headline=response["headline"].strip(),
         body=body,
-        # SMS is always rules-rendered: deterministic, free, and exactly 160 chars.
-        sms_text=render_sms(verdict, rules),
+        # SMS is always rules-rendered: deterministic, free, and exactly 160
+        # chars. Translations come from the reviewed i18n config, not the model.
+        sms_text=render_sms(verdict, rules, lang=lang),
         verdict=verdict,
         disclaimer=rules["safety"]["disclaimer"],
         generated_by="llm",

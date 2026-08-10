@@ -298,16 +298,51 @@ def build_verdict(
 # --------------------------------------------------------------------------- #
 # Rules-only rendering (the fallback path, and the SMS path always)
 # --------------------------------------------------------------------------- #
-def render_sms(verdict: Verdict, rules: Dict[str, Any]) -> str:
-    """Deterministic <=160 char SMS. Never LLM-generated: it must be free and exact."""
+I18N_PATH = REPO_ROOT / "configs" / "advisory_i18n.yaml"
+
+
+@functools.lru_cache(maxsize=2)
+def load_i18n(path: str = str(I18N_PATH)) -> Dict[str, Any]:
+    """Reviewed SMS translations, or an empty map if the file is absent.
+
+    SMS strings are translated at build time, not per message: there are only
+    ~14 short strings per language, so a native speaker can review one small
+    file instead of hundreds of messages, and the 2G path stays deterministic
+    and free.
+    """
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return yaml.safe_load(fh) or {}
+    except FileNotFoundError:
+        return {}
+
+
+def strings_for(lang: str) -> Dict[str, Any]:
+    """Translations for one language, empty if unavailable."""
+    if lang == "en":
+        return {}
+    return (load_i18n().get("languages") or {}).get(lang) or {}
+
+
+def render_sms(verdict: Verdict, rules: Dict[str, Any], lang: str = "en") -> str:
+    """Deterministic <=160 char SMS. Never LLM-generated: it must be free and exact.
+
+    Falls back to English string by string, so a partially translated language
+    still sends a usable message rather than a blank one.
+    """
     limit = rules["delivery"]["sms_max_chars"]
+    strings = strings_for(lang)
+
     top = next((a for a in verdict.actions if a.stage == "in_season"), None)
     if top is None:
         top = verdict.actions[0] if verdict.actions else None
 
+    band_label = (strings.get("band_labels") or {}).get(
+        verdict.band, verdict.band_label
+    )
     head = (
         f"{verdict.crop_type} {verdict.field_id}: "
-        f"~{verdict.predicted_yield:g} {verdict.yield_unit} ({verdict.band_label})."
+        f"~{verdict.predicted_yield:g} {verdict.yield_unit} ({band_label})."
     )
     if top is None:
         return head[:limit]
@@ -318,7 +353,9 @@ def render_sms(verdict: Verdict, rules: Dict[str, Any]) -> str:
 
     # Prefer the authored short form. Truncating the full action loses part of
     # the instruction, and on 2G the SMS is the whole advisory.
-    tail = top.sms_action or top.action
+    tail = (strings.get("sms_actions") or {}).get(top.rule_id) or (
+        top.sms_action or top.action
+    )
     if len(tail) > remaining:
         # Cut on a word boundary: "...note which pa." is worse than a short
         # sentence, and this is the only text some farmers ever see.

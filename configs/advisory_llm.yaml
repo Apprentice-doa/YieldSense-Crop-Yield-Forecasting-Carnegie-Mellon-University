@@ -44,10 +44,11 @@ limits:
   headline_max_chars: 80
   body_max_chars: 900
 
-# Hard ceiling per advisory across all providers and retries. Exceeding it
-# returns the rules-only advisory rather than spending more.
+# Hard ceiling per advisory across all providers, retries AND the translation
+# pass. A non-English advisory costs up to 2 generation calls plus 2 translation
+# calls, so 4 would leave no headroom for a single retry.
 cost_guard:
-  max_llm_calls_per_advisory: 4
+  max_llm_calls_per_advisory: 6
 
 cache:
   enabled: true

@@ -173,14 +173,17 @@ def test_repeated_invalid_responses_fall_back_to_rules(payload, verdict):
 
 def test_cost_guard_caps_total_llm_calls(payload, verdict):
     """Four providers each willing to retry must not mean eight calls."""
+    from src.advisory.generator import load_llm_config
+
+    cap = load_llm_config()["cost_guard"]["max_llm_calls_per_advisory"]
     bad = good_response(verdict)
     bad["headline"] = "x" * 200  # always fails the shape check
-    providers = [FakeProvider([bad] * 4) for _ in range(4)]
+    providers = [FakeProvider([bad] * 8) for _ in range(4)]
 
     generate_advisory(payload, providers=providers, use_cache=False)
 
     total = sum(len(p.calls) for p in providers)
-    assert total <= 4, f"cost guard breached: {total} calls"
+    assert total <= cap, f"cost guard breached: {total} calls, cap is {cap}"
 
 
 # --------------------------------------------------------------------------- #
@@ -194,6 +197,23 @@ def test_numeric_fidelity_rejects_an_invented_figure(verdict):
 def test_numeric_fidelity_accepts_verdict_numbers(verdict):
     text = f"Estimated at {verdict.predicted_yield:g} {verdict.yield_unit}."
     assert check_numeric_fidelity(text, verdict) == []
+
+
+@pytest.mark.parametrize("rendering", ["90%", "90.1%", "0.901"])
+def test_numeric_fidelity_accepts_faithful_renderings_of_a_ratio(rendering, verdict):
+    """Regression: accepting only "90" discarded a correct advisory that said 90.1%.
+
+    A ratio of 0.901 is faithfully stated as 0.901, 90% or 90.1%. Rejecting the
+    one-decimal form sent a good advisory to the rules fallback in the live eval.
+    """
+    verdict.baseline_ratio = 0.901
+    assert check_numeric_fidelity(f"That is about {rendering} of typical.", verdict) == []
+
+
+def test_numeric_fidelity_still_rejects_a_nearby_invention(verdict):
+    """Widening the tolerance must not turn the check off."""
+    verdict.baseline_ratio = 0.901
+    assert check_numeric_fidelity("That is about 73.4% of typical.", verdict)
 
 
 def test_numeric_fidelity_ignores_the_field_identifier(verdict):
