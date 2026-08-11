@@ -60,9 +60,10 @@ requests>=2.31.0
 # optuna>=3.3.0
 # ray[tune]>=2.6.0
 
-# Optional: Model serving
-# fastapi>=0.100.0
-# uvicorn>=0.23.0
+# Model serving (required by src/controller.py and src/advisory/api.py)
+fastapi>=0.100.0
+uvicorn>=0.23.0
+httpx>=0.24.0          # FastAPI TestClient
 
 # Optional: Cloud storage
 # boto3>=1.28.0

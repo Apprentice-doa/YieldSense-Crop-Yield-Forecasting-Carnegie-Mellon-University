@@ -1,0 +1,58 @@
+# GenAI Advisory -- LLM generation config
+#
+# Kept separate from advisory_rules.yaml on purpose: swapping a model or nudging
+# a timeout must NOT bump `rules_version`, because that would needlessly
+# invalidate every cached advisory. Rules changes affect what we say; this file
+# only affects how it is worded.
+
+# Primary provider, then fallbacks in order. The last resort is always the
+# rules-only renderer, which needs no provider at all.
+providers:
+  # Primary. Azure AI Foundry's /openai/v1 route is OpenAI-compatible, so it
+  # reuses the OpenAI adapter. Endpoint and deployment name come from the
+  # environment so no tenant-specific value is committed.
+  - name: azure_openai
+    model: gpt-5.2                      # fallback if AZURE_OPENAI_DEPLOYMENT unset
+    model_env: AZURE_OPENAI_DEPLOYMENT
+    api_key_env: AZURE_OPENAI_API_KEY
+    endpoint_env: AZURE_OPENAI_ENDPOINT  # base, e.g. https://<res>.services.ai.azure.com/openai/v1
+    endpoint: "https://REPLACE-ME.services.ai.azure.com/openai/v1/chat/completions"
+    # This deployment rejects `max_tokens` outright and requires the newer name.
+    token_param: max_completion_tokens
+    timeout_seconds: 30
+
+  - name: gemini
+    model: gemini-2.0-flash
+    api_key_env: GEMINI_API_KEY
+    endpoint: "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    timeout_seconds: 20
+
+  - name: openai
+    model: gpt-4o-mini
+    api_key_env: OPENAI_API_KEY
+    endpoint: "https://api.openai.com/v1/chat/completions"
+    timeout_seconds: 20
+
+generation:
+  temperature: 0.3          # low: we are rephrasing a fixed verdict, not creating
+  max_output_tokens: 800
+  max_attempts_per_provider: 2   # 1 initial + 1 repair retry on validation failure
+  retry_on_status: [429, 500, 502, 503, 504]
+  backoff_seconds: [1, 3]
+
+limits:
+  headline_max_chars: 80
+  body_max_chars: 900
+
+# Hard ceiling per advisory across all providers, retries AND the translation
+# pass. A non-English advisory costs up to 2 generation calls plus 2 translation
+# calls, so 4 would leave no headroom for a single retry.
+cost_guard:
+  max_llm_calls_per_advisory: 6
+
+cache:
+  enabled: true
+  # Advisory fires once per season, so entries are long-lived. The key is
+  # payload hash + rules_version + lang, so a revised forecast misses cleanly.
+  ttl_seconds: 7776000       # 90 days
+  max_entries: 10000
