@@ -1,107 +1,144 @@
-A standardized template repository for AI/ML projects. This template provides all necessary processes, workflows, and documentation to get new projects started quickly and maintain consistency across the team.
+# YieldSense
 
-## What This Template Provides
+Crop yield forecasting and AI advisory for African smallholder farmers.
 
-- **Standardized project structure** for AI/ML development
-- **Complete documentation** covering development, deployment, and team processes
-- **Pre-configured CI/CD workflows** for automated testing and quality checks
-- **Development environment setup** with Docker and dependency management
-- **ML workflow guidelines** for experiment tracking and model management
-- **Team collaboration tools** including PR templates and issue tracking
+Carnegie Mellon University Africa — *Applications of AI in Africa*.
+Akhabue Daniel Osaro · Afolabi Paul Okikijesu · Kitonge Levis ·
+Martin Muchuki Irungu · Emmanuel Musundi Nyanja
 
-## Quick Start
+## The problem
 
-1. **Use this template** to create a new repository
-2. **Clone your new repository**
-3. **Customize** the project-specific sections (marked with `[CUSTOMIZE]`)
-4. **Set up your environment** following the [onboarding guide](docs/ONBOARDING.md)
-5. **Start developing** using our [development guide](docs/DEVELOPMENT_GUIDE.md)
+Most smallholder farmers in Africa have no reliable way to anticipate how a
+season will perform. Without a yield estimate, decisions about planting
+schedules, resource allocation and market timing are guesswork.
 
-## Project Structure
+YieldSense predicts seasonal yield from climate, satellite and historical data,
+then turns that prediction into advice a farmer can act on — with particular
+attention to **post-harvest decisions**: storage, drying, labour, and when to
+sell.
 
+## Architecture
+
+Four layers, per the project proposal:
+
+| Layer | What it does |
+|---|---|
+| **User** | Web app, and SMS over 2G for farmers without smartphones |
+| **Platform** | Mobile-first responsive web app |
+| **Intelligence** | ML yield prediction · GenAI advisory · chatbot |
+| **Data** | Climate, geographical and historical yield data |
+
+## Tracks and status
+
+| Track | Owner | Status |
+|---|---|---|
+| Data & ML | — | In progress |
+| **GenAI Advisory** | Martin | **Built** — see [docs/ADVISORY.md](docs/ADVISORY.md) |
+| Chatbot | — | In progress |
+| Platform / Backend | — | In progress |
+
+### GenAI Advisory
+
+Turns a yield forecast into a written recommendation, once per season, in four
+languages, delivered to web and to a single 160-character SMS.
+
+The design rule is that **the rules engine decides and the LLM only narrates**.
+Every band, threshold and quantity a farmer sees is computed deterministically;
+the model rephrases and translates what the rules already decided, and every
+generated response is validated before it can reach anyone. This is what makes
+the advisory safe to ship, testable without an API key, and functional when the
+provider is down.
+
+Full design, guarantees, evaluation results and known limitations:
+**[docs/ADVISORY.md](docs/ADVISORY.md)**.
+
+```python
+from src.advisory import on_prediction_complete, register_sink
+
+register_sink(save_to_db)
+register_sink(queue_sms)
+advisory = on_prediction_complete(prediction)   # once per season
 ```
-├── data/                   # Data storage (gitignored except .gitkeep)
-│   ├── raw/               # Original, immutable data
-│   ├── processed/         # Cleaned and transformed data
-│   └── external/          # Third-party data sources
-├── notebooks/             # Jupyter notebooks for exploration
-├── src/                   # Source code for the project
-├── models/                # Request and response model files
-├── artefacts/             # Trained models and model artifacts
-├── tests/                 # Unit and integration tests
-├── docs/                  # Project documentation
-├── configs/               # Configuration files
-├── scripts/               # Utility scripts
-├── .github/               # GitHub workflows and templates
-├── requirements.txt       # Python dependencies
-├── Dockerfile            # Container configuration
-└── pyproject.toml        # Project configuration
+
+```python
+from src.advisory.api import router as advisory_router
+app.include_router(advisory_router)   # POST /api/v1/advisory, /sms, GET /health
 ```
 
-## Documentation
+## Setup
 
-- **[Onboarding Guide](docs/ONBOARDING.md)** - Environment setup and first steps
-- **[Development Guide](docs/DEVELOPMENT_GUIDE.md)** - Local development workflow
-- **[Coding Standards](docs/CODING_STANDARDS.md)** - Code style and quality requirements
-- **[Git Workflow](docs/GIT_WORKFLOW.md)** - Branch management and PR process
-- **[Data Management](docs/DATA_MANAGEMENT.md)** - Data handling and versioning
-- **[ML Workflow](docs/ML_WORKFLOW.md)** - Experiment tracking and model deployment
-- **[Contributing](CONTRIBUTING.md)** - How to contribute to projects
+Requires Python 3.9+.
 
-## Setup Instructions
-
-### Prerequisites
-- Python 3.9+
-- Git
-- Docker (optional but recommended)
-
-### Environment Setup
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd <your-repo-name>
+git clone https://github.com/Apprentice-doa/YieldSense-Crop-Yield-Forecasting-Carnegie-Mellon-University.git
+cd YieldSense-Crop-Yield-Forecasting-Carnegie-Mellon-University
 
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Copy environment template
-cp .env.example .env
-# Edit .env with your specific values
+cp .env.example .env               # then fill in any provider keys you have
 ```
 
-### Verification
+**API keys are optional.** With none set, the advisory service still runs and
+serves its deterministic rules-only text. See
+[docs/ADVISORY.md](docs/ADVISORY.md#configuring-providers) for provider setup.
+
+### Verify
+
 ```bash
-# Run tests to verify setup
-pytest tests/
-
-# Check code formatting
+pytest tests/ --no-cov     # runs fully offline; no API key used or needed
 black --check src/ tests/
-
-# Run linting
 flake8 src/ tests/
 ```
 
-## Team Contact Information
+### Useful scripts
 
-**[CUSTOMIZE]** Update with your team's contact information:
+| Command | Purpose |
+|---|---|
+| `python scripts/advisory_eval.py` | Score the advisory against the golden set |
+| `python scripts/advisory_eval.py --live` | Same, against a real provider |
+| `python scripts/advisory_coverage_report.py` | Rule behaviour across the whole dataset |
+| `python scripts/advisory_demo.py` | Warm the cache and print demo advisories |
+| `python scripts/season_report.py` | Predicted vs actual season performance |
 
-- **Team Lead**: [Name] - [email]
-- **ML Engineers**: [Names and contacts]
-- **Data Scientists**: [Names and contacts]
-- **Team Channel**: #ai-team
-- **Team Wiki**: [Link to internal documentation]
+## Data
 
-## Getting Help
+`data/external/yield_prediction_dataset.csv` — 1,625 rows, 90 fields, 30 crops,
+Jan–May 2023.
 
-- Check the [documentation](docs/) first
-- Search existing [issues](../../issues)
-- Ask in the team chat channel
-- Create a new [issue](../../issues/new) if needed
+**Known limitations, stated plainly** because they constrain what the system may
+honestly claim:
 
-## License
+- **Single season only.** There is no multi-year history, so "typical" is a
+  within-dataset crop mean, not a district historical average.
+- **Not African data.** Coordinates are ~22.6°N, 88.5°E (West Bengal, India).
+- **Likely synthetic.** All 30 crops have near-identical yield distributions,
+  which real agronomy does not produce.
+- **`yield` has no units**, and there is no field area, so post-harvest
+  quantities are structurally correct but not yet interpretable.
 
-**[CUSTOMIZE]** Add your organization's license information.
+These are documented rather than worked around. Advisory copy is written to
+match what the data actually supports.
+
+## Documentation
+
+- **[GenAI Advisory](docs/ADVISORY.md)** — design, guarantees, evaluation
+- [Onboarding](docs/ONBOARDING.md) · [Development](docs/DEVELOPMENT_GUIDE.md) ·
+  [Coding standards](docs/CODING_STANDARDS.md)
+- [Git workflow](docs/GIT_WORKFLOW.md) · [Contributing](CONTRIBUTING.md)
+- [Data management](docs/DATA_MANAGEMENT.md) · [ML workflow](docs/ML_WORKFLOW.md)
+
+## Project structure
+
+```
+├── configs/               # Rules, baselines, LLM and i18n configuration
+├── data/                  # Datasets (gitignored except .gitkeep)
+├── docs/                  # Documentation and review sheets
+├── notebooks/             # Exploration
+├── scripts/               # Reproducible build, evaluation and demo scripts
+├── src/
+│   └── advisory/          # GenAI Advisory track
+├── tests/                 # Unit, integration and golden-set tests
+└── .github/               # Workflows and templates
+```
