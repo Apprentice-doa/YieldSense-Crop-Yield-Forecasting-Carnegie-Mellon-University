@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 
 from src.db.base import Base
 
-
 class YieldRecord(Base):
     __tablename__ = "yield_records"
 

@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 
 from src.db.base import Base
 
-
 class CropProfile(Base):
     __tablename__ = "crop_profiles"
 

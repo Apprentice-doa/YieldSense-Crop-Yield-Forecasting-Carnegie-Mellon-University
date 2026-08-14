@@ -4,7 +4,6 @@ import requests
 _DDG_URL = "https://api.duckduckgo.com/"
 _TIMEOUT = 8
 
-
 def search(query: str, max_results: int = 5) -> list[dict[str, str]]:
     """Search DuckDuckGo and return up to max_results text snippets.
 

@@ -5,7 +5,6 @@ from src.repositories.farmer_repository import FarmerRepository
 from src.db.models.farmer import Farmer
 from src.db.models.crop_profile import CropProfile
 
-
 class FarmerService:
     def __init__(self, db: Session):
         self.repo = FarmerRepository(db)
