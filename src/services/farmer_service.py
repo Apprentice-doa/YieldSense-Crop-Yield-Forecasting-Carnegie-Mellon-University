@@ -50,3 +50,44 @@ class FarmerService:
         self.repo.delete(farmer)
         self.repo.commit()
         return True
+
+    def update_farmer(self, farmer_id: int, changes: dict) -> Farmer | None:
+        farmer = self.repo.get_by_id(farmer_id)
+        if not farmer:
+            return None
+
+        # Validation: unique phone and email
+        phone = changes.get("phone_number")
+        if phone:
+            existing = self.repo.find_by_phone(phone)
+            if existing and existing.id != farmer.id:
+                raise ValueError("phone_exists")
+
+        email = changes.get("email_address")
+        if email:
+            existing_e = self.repo.find_by_email(email)
+            if existing_e and existing_e.id != farmer.id:
+                raise ValueError("email_exists")
+
+        # Handle crop_profiles replacement if provided
+        crop_profiles = changes.pop("crop_profiles", None)
+
+        # Apply simple field updates
+        self.repo.update(farmer, changes)
+
+        if crop_profiles is not None:
+            # delete existing crop profiles and add new ones
+            # eager-delete via query
+            self.db.query(CropProfile).filter(CropProfile.farmer_id == farmer.id).delete()
+            for cp in crop_profiles:
+                new_cp = CropProfile(
+                    farmer_id=farmer.id,
+                    crop_type=cp.get("crop_type") if isinstance(cp, dict) else getattr(cp, "crop_type", None),
+                    planting_month=cp.get("planting_month") if isinstance(cp, dict) else getattr(cp, "planting_month", None),
+                    harvest_month=cp.get("harvest_month") if isinstance(cp, dict) else getattr(cp, "harvest_month", None),
+                    average_yield_tons=cp.get("average_yield_tons") if isinstance(cp, dict) else getattr(cp, "average_yield_tons", 0.0),
+                )
+                self.db.add(new_cp)
+
+        self.repo.commit()
+        return farmer

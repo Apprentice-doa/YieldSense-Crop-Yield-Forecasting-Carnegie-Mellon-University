@@ -24,3 +24,16 @@ class FarmerOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class FarmerUpdate(BaseModel):
+    name: Optional[str] = None
+    farm_country: Optional[str] = None
+    farm_state_region: Optional[str] = None
+    phone_number: Optional[str] = None
+    email_address: Optional[str] = None
+    area_of_farmland: Optional[float] = None
+    crop_profiles: Optional[List[CropProfileOut]] = None
+
+    class Config:
+        orm_mode = True

@@ -19,6 +19,19 @@ class FarmerRepository:
     def get_by_id(self, farmer_id: int) -> Optional[Farmer]:
         return self.db.query(Farmer).filter(Farmer.id == farmer_id).first()
 
+    def find_by_phone(self, phone_number: str) -> Optional[Farmer]:
+        return self.db.query(Farmer).filter(Farmer.phone_number == phone_number).first()
+
+    def find_by_email(self, email: str) -> Optional[Farmer]:
+        return self.db.query(Farmer).filter(Farmer.email_address == email).first()
+
+    def update(self, farmer: Farmer, changes: dict) -> Farmer:
+        for k, v in changes.items():
+            if hasattr(farmer, k) and k != "id":
+                setattr(farmer, k, v)
+        self.db.flush()
+        return farmer
+
     def list(self, limit: int = 100) -> List[Farmer]:
         return self.db.query(Farmer).limit(limit).all()
 

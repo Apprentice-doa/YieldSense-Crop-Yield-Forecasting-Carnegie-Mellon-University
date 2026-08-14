@@ -37,6 +37,16 @@ class FarmerOnboardingCreate(BaseModel):
     crop_profiles: List[CropProfileCreate]
 
 
+class FarmerOnboardingUpdate(BaseModel):
+    name: Optional[str] = None
+    farm_country: Optional[str] = None
+    farm_state_region: Optional[str] = None
+    phone_number: Optional[str] = None
+    area_of_farmland: Optional[float] = None
+    email_address: Optional[str] = None
+    crop_profiles: Optional[List[CropProfileCreate]] = None
+
+
 @router.get("", response_model=List[FarmerOut])
 async def list_farmers(db: Session = Depends(get_db)) -> List[FarmerOut]:
     """List all farmer records."""
@@ -66,11 +76,23 @@ async def get_farmer(farmer_id: int, db: Session = Depends(get_db)) -> FarmerOut
     return farmer
 
 
-@router.put("/{farmer_id}")
-async def update_farmer(farmer_id: int) -> dict:
+@router.put("/{farmer_id}", response_model=FarmerOut)
+async def update_farmer(farmer_id: int, payload: FarmerOnboardingUpdate, db: Session = Depends(get_db)) -> FarmerOut:
     """Update a farmer profile and associated crop records."""
 
-    raise HTTPException(status_code=501, detail="Farmer update is still under implementation")
+    svc = FarmerService(db)
+    try:
+        farmer = svc.update_farmer(farmer_id, payload.model_dump(exclude_unset=True))
+    except ValueError as e:
+        if str(e) == "phone_exists":
+            raise HTTPException(status_code=400, detail="Phone number already in use")
+        if str(e) == "email_exists":
+            raise HTTPException(status_code=400, detail="Email address already in use")
+        raise
+
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    return farmer
 
 
 @router.delete("/{farmer_id}")
