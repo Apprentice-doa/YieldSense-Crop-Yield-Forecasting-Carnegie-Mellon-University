@@ -9,7 +9,6 @@ def _get_client() -> AzureOpenAI:
     global _client
     if _client is None:
         endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "https://mcochiengai.services.ai.azure.com/openai/v1")
-        # AzureOpenAI expects the base resource URL, not the /openai/v1 path
         base = endpoint.split("/openai")[0]
         _client = AzureOpenAI(
             api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
