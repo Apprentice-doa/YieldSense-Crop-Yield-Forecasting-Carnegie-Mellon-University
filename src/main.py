@@ -40,9 +40,17 @@ async def startup_event() -> None:
     """
 
     from src.db.session import init_db, tables_exist
-
-    # Create all tables (if not present) and then assert they exist
+    # Create all tables (if not present)
     init_db()
+
+    # Optionally seed initial data when configured
+    from src.config.settings import settings
+    if settings.initialize_db:
+        from src.db.session import seed_initial_data
+
+        seed_initial_data()
+
+    # Verify tables exist
     exists = tables_exist()
     missing = [name for name, ok in exists.items() if not ok]
     if missing:
