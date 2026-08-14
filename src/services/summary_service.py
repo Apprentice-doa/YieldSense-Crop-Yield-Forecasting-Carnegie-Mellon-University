@@ -17,7 +17,6 @@ def _get_client() -> AzureOpenAI:
         )
     return _client
 
-
 def _get_deployment() -> str:
     return os.environ.get("AZURE_OPENAI_DEPLOYMENT", "gpt-5.2")
 
@@ -40,7 +39,6 @@ extension officers or agronomists when making significant financial or planting 
 
 Language: Detect the language of the farmer's message and respond in that same language.
 Supported languages: English, Swahili, Kinyarwanda, French, Amharic, Luganda."""
-
 
 def build_summary_prompt(ctx: YieldPredictionContext) -> str:
     soil_line = f"Soil type        : {ctx.soil_type}" if ctx.soil_type else ""
@@ -84,11 +82,9 @@ def build_summary_prompt(ctx: YieldPredictionContext) -> str:
          - End with a single encouraging sentence addressed to {ctx.farmer_name}.
       """.strip()
 
-
 def build_prompt(ctx: YieldPredictionContext) -> str:
     """Return the full one-shot prompt to send to the LLM."""
     return f"{SYSTEM_PROMPT}\n\n{build_summary_prompt(ctx)}"
-
 
 def get_summary(ctx: YieldPredictionContext) -> str:
     response = _get_client().chat.completions.create(

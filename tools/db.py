@@ -4,7 +4,6 @@ from typing import Any
 from sqlalchemy.orm import Session
 from src.db.models.yield_record import YieldRecord
 
-
 def get_yield_history(db: Session, farmer_id: int) -> list[dict]:
     """Return all yield records for a farmer, ordered by season."""
     records = (
@@ -24,7 +23,6 @@ def get_yield_history(db: Session, farmer_id: int) -> list[dict]:
         }
         for r in records
     ]
-
 
 def get_yield_summary(db: Session, farmer_id: int) -> dict:
     """Aggregate yield stats per crop across all seasons."""
@@ -46,7 +44,6 @@ def get_yield_summary(db: Session, farmer_id: int) -> dict:
         }
         for crop, vals in by_crop.items()
     }
-
 
 def build_yield_chart(db: Session, farmer_id: int) -> dict[str, Any] | None:
     """Return a Plotly JSON bar chart of predicted vs actual yield per season."""

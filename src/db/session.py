@@ -5,13 +5,14 @@ from __future__ import annotations
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.config.settings import settings
+import os
 from src.db.base import Base
 
-
-engine = create_engine(settings.database_url, future=True)
+engine = create_engine(
+    os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/YieldLensDb"),
+    future=True,
+)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
-
 
 def init_db() -> None:
     """Initialize SQLAlchemy metadata for all DB models.
@@ -32,7 +33,6 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
 
-
 def tables_exist() -> dict:
     """Return a mapping of key table name to boolean existence in the DB."""
 
@@ -42,7 +42,6 @@ def tables_exist() -> dict:
     tables = {"farmers": inspector.has_table("farmers"), "crop_profiles": inspector.has_table("crop_profiles")}
     return tables
 
-
 def get_db():
     """Yield a SQLAlchemy session for FastAPI dependencies."""
     db = SessionLocal()
@@ -50,7 +49,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
 
 def seed_initial_data(seed_path: str | None = None) -> None:
     """Seed the database with initial farmer and crop profile data.

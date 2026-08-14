@@ -4,7 +4,6 @@ from typing import List, Optional
 from src.db.models.farmer import Farmer
 from src.db.models.crop_profile import CropProfile
 
-
 class FarmerRepository:
     def __init__(self, db: Session):
         self.db = db

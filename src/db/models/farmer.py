@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 
 from src.db.base import Base
 
-
 class Farmer(Base):
     __tablename__ = "farmers"
 

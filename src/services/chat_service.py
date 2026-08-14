@@ -26,10 +26,8 @@ def _get_redis() -> redis.Redis:
 def _farmer_key(farmer_id: int) -> str:
     return f"farmer:{farmer_id}"
 
-
 def _session_key(session_id: str) -> str:
     return f"session:{session_id}:meta"
-
 
 def _conv_key(session_id: str, conversation_id: str) -> str:
     return f"session:{session_id}:conv:{conversation_id}"
@@ -80,19 +78,16 @@ def _get_or_create_session(session_id: str, farmer_id: int, language: str) -> di
     r.setex(key, SESSION_TTL, json.dumps(meta))
     return meta
 
-
 def _load_history(session_id: str, conversation_id: str) -> list[dict]:
     r = _get_redis()
     key = _conv_key(session_id, conversation_id)
     raw = r.get(key)
     return json.loads(raw) if raw else []
 
-
 def _save_history(session_id: str, conversation_id: str, history: list[dict]) -> None:
     r = _get_redis()
     key = _conv_key(session_id, conversation_id)
     r.setex(key, SESSION_TTL, json.dumps(history))
-
 
 def new_conversation(session_id: str) -> str:
     """Start a fresh conversation within an existing session. Returns new conversation_id."""
@@ -105,8 +100,6 @@ def new_conversation(session_id: str) -> str:
     meta["active_conversation_id"] = str(uuid.uuid4())
     r.setex(key, SESSION_TTL, json.dumps(meta))
     return meta["active_conversation_id"]
-
-
 
 _TOOLS = [
     {
@@ -132,7 +125,6 @@ _TOOLS = [
         },
     },
 ]
-
 
 def _execute_tool(name: str, args: dict, farmer_id: int, db: Session) -> tuple[str, dict | None]:
     chart: dict[str, Any] | None = None
