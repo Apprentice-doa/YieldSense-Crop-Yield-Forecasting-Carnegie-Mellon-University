@@ -1,7 +1,12 @@
 """Main application entry point."""
-
 import sys
+import uvicorn
 from pathlib import Path
+from fastapi import FastAPI
+from src.config.settings import settings
+from src.controllers.health_controller import router as health_router
+from src.controllers.farmers_controller import router as farmers_router
+from src.db.session import init_db, tables_exist, seed_initial_data
 
 # Ensure the project root is on sys.path so the `src` package can be
 # imported whether the process is started from the project root or
@@ -9,12 +14,6 @@ from pathlib import Path
 _project_root = Path(__file__).resolve().parents[1]
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
-
-import uvicorn
-from fastapi import FastAPI
-
-from src.controllers.health_controller import router as health_router
-from src.controllers.farmers_controller import router as farmers_router
 
 app = FastAPI(
     title="YieldSense API",
@@ -38,19 +37,11 @@ async def startup_event() -> None:
     the expected tables cannot be created or found, raise an exception so
     the process fails fast.
     """
-
-    from src.db.session import init_db, tables_exist
-    # Create all tables (if not present)
     init_db()
 
-    # Optionally seed initial data when configured
-    from src.config.settings import settings
     if settings.initialize_db:
-        from src.db.session import seed_initial_data
-
         seed_initial_data()
 
-    # Verify tables exist
     exists = tables_exist()
     missing = [name for name, ok in exists.items() if not ok]
     if missing:
