@@ -4,9 +4,14 @@ This file is intentionally a placeholder for the first domain-specific API
 module, keeping the route layer separated from future service/repository logic.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional
+from sqlalchemy.orm import Session
+
+from src.db.session import get_db
+from src.services.farmer_service import FarmerService
+from src.schemas.farmer_schema import FarmerOut
 
 router = APIRouter(prefix="/farmers", tags=["farmers"])
 
@@ -32,36 +37,33 @@ class FarmerOnboardingCreate(BaseModel):
     crop_profiles: List[CropProfileCreate]
 
 
-@router.get("")
-async def list_farmers() -> dict:
+@router.get("", response_model=List[FarmerOut])
+async def list_farmers(db: Session = Depends(get_db)) -> List[FarmerOut]:
     """List all farmer records."""
 
-    return {"items": []}
+    svc = FarmerService(db)
+    farmers = svc.list_farmers()
+    return farmers
 
 
-@router.post("")
-async def create_farmer(payload: FarmerOnboardingCreate) -> dict:
+@router.post("", response_model=FarmerOut)
+async def create_farmer(payload: FarmerOnboardingCreate, db: Session = Depends(get_db)) -> FarmerOut:
     """Create a new farmer onboarding record."""
 
-    return {
-        "message": "farmer onboarding payload accepted",
-        "farmer": {
-            "name": payload.name,
-            "farm_country": payload.farm_country,
-            "farm_state_region": payload.farm_state_region,
-            "phone_number": payload.phone_number,
-            "email_address": payload.email_address,
-            "area_of_farmland": payload.area_of_farmland,
-            "crop_profiles": [profile.model_dump() for profile in payload.crop_profiles],
-        },
-    }
+    svc = FarmerService(db)
+    farmer = svc.create_farmer(payload.model_dump())
+    return farmer
 
 
-@router.get("/{farmer_id}")
-async def get_farmer(farmer_id: int) -> dict:
+@router.get("/{farmer_id}", response_model=FarmerOut)
+async def get_farmer(farmer_id: int, db: Session = Depends(get_db)) -> FarmerOut:
     """Fetch a farmer profile by identifier."""
 
-    raise HTTPException(status_code=501, detail="Farmer retrieval is still under implementation")
+    svc = FarmerService(db)
+    farmer = svc.get_farmer(farmer_id)
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    return farmer
 
 
 @router.put("/{farmer_id}")
@@ -72,7 +74,11 @@ async def update_farmer(farmer_id: int) -> dict:
 
 
 @router.delete("/{farmer_id}")
-async def delete_farmer(farmer_id: int) -> dict:
+async def delete_farmer(farmer_id: int, db: Session = Depends(get_db)) -> dict:
     """Delete a farmer profile and associated records."""
 
-    raise HTTPException(status_code=501, detail="Farmer deletion is still under implementation")
+    svc = FarmerService(db)
+    ok = svc.delete_farmer(farmer_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    return {"deleted": True}

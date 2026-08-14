@@ -43,6 +43,15 @@ def tables_exist() -> dict:
     return tables
 
 
+def get_db():
+    """Yield a SQLAlchemy session for FastAPI dependencies."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def seed_initial_data(seed_path: str | None = None) -> None:
     """Seed the database with initial farmer and crop profile data.
 
