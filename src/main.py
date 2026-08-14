@@ -30,5 +30,23 @@ app = FastAPI(
 app.include_router(health_router)
 app.include_router(farmers_router)
 
+@app.on_event("startup")
+async def startup_event() -> None:
+    """Application startup hook.
+
+    Initialize database tables and verify expected tables are present. If
+    the expected tables cannot be created or found, raise an exception so
+    the process fails fast.
+    """
+
+    from src.db.session import init_db, tables_exist
+
+    # Create all tables (if not present) and then assert they exist
+    init_db()
+    exists = tables_exist()
+    missing = [name for name, ok in exists.items() if not ok]
+    if missing:
+        raise RuntimeError(f"Missing required tables after init: {missing}")
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
