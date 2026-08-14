@@ -6,7 +6,7 @@ Skip automatically when the key is absent.
 """
 import os
 import pytest
-import src.summary_service as svc
+import src.services.summary_service as svc
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,7 +19,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 from models.request import YieldPredictionContext  # noqa: E402
-from src.summary_service import get_summary  # noqa: E402
+from src.services.summary_service import get_summary  # noqa: E402
 
 CTX = YieldPredictionContext(
     farmer_name="Amara Diallo",

@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yieldsense-api
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: YieldSense API
+      APP_VERSION: 0.1.0
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/yieldsense
+      HOST: 0.0.0.0
+      PORT: 8000
+    depends_on:
+      - postgres
+    command: python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  postgres:
+    image: postgres:16
+    container_name: yieldsense-postgres
+    environment:
+      POSTGRES_DB: yieldsense
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

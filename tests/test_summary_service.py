@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 from models.request import YieldPredictionContext
-from src.summary_service import get_summary
+from src.services.summary_service import get_summary
 
 CTX = YieldPredictionContext(
     farmer_name="John Doe",
