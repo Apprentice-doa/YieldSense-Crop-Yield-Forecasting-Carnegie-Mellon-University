@@ -5,7 +5,6 @@ from models.request import YieldPredictionContext
 
 _client: Optional[AzureOpenAI] = None
 
-
 def _get_client() -> AzureOpenAI:
     global _client
     if _client is None:
