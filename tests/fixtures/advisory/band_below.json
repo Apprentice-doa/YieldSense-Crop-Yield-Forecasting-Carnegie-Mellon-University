@@ -1,22 +1,20 @@
 {
   "field_id": "Field_83",
   "crop_type": "Millets",
-  "predicted_yield": 33.103,
   "date_of_image": "03-02-2023",
-  "latitude": 22.471747,
-  "longitude": 73.303379,
-  "NDVI": 0.3476,
-  "GNDVI": 0.4089,
-  "SAVI": 0.5214,
+  "predicted_yield": 33.103,
+  "yield_unit": "units/ha",
+  "NDVI": 0.4987,
+  "GNDVI": 0.5007,
+  "SAVI": 0.299,
+  "rainfall": 0.0911,
+  "temperature": 21.026,
   "soil_moisture": 26.635,
-  "temperature": 6.5045,
-  "rainfall": 6.3785,
   "prediction_interval": [
     30.455,
     35.751
   ],
   "model_version": "fixture-v0",
-  "yield_unit": "units/ha",
   "area_ha": 1.5,
   "farmer_lang": "en"
 }

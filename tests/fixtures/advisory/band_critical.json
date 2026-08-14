@@ -1,22 +1,20 @@
 {
   "field_id": "Field_63",
   "crop_type": "Cashew Nut",
-  "predicted_yield": 29.003,
   "date_of_image": "04-01-2023",
-  "latitude": 15.780087,
-  "longitude": 77.842564,
-  "NDVI": 0.2131,
-  "GNDVI": 0.3389,
-  "SAVI": 0.3196,
+  "predicted_yield": 29.003,
+  "yield_unit": "units/ha",
+  "NDVI": 0.5162,
+  "GNDVI": 0.5717,
+  "SAVI": 0.2981,
+  "rainfall": 0.0776,
+  "temperature": 24.4188,
   "soil_moisture": 31.5799,
-  "temperature": 23.3076,
-  "rainfall": 5.3408,
   "prediction_interval": [
     26.683,
     31.323
   ],
   "model_version": "fixture-v0",
-  "yield_unit": "units/ha",
   "area_ha": 1.5,
   "farmer_lang": "en"
 }

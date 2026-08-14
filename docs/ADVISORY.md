@@ -139,10 +139,58 @@ Each of these is enforced by a test in
 - **Deterministic.** Same payload, same verdict, always. This is what makes the
   cache key sound.
 
+## Which columns the rules read
+
+The dataset now ships two parallel sets of indices: the original columns
+(`NDVI`, `rainfall`, `temperature`, …) and Google Earth Engine computations
+(`gee_ndvi`, `gee_rainfall`, `gee_temp`, …).
+
+**The rules read the GEE columns.** They are real measurements of the field, and
+driver rules exist to describe real conditions — whether to irrigate, whether to
+walk the field — not to predict the yield number.
+
+That distinction is not academic, because the two disagree sharply:
+
+| correlation with `yield` | original | **GEE (real)** |
+|---|---|---|
+| rainfall | **0.756** | 0.162 |
+| NDVI | 0.340 | 0.063 |
+| SAVI | 0.340 | 0.074 |
+
+The original columns predict `yield` almost perfectly; the real satellite data
+barely does. The most economical explanation is that **`yield` was generated
+from the original columns**, which makes their predictive power an artefact
+rather than a finding.
+
+This matters beyond our track. **A model trained on the original columns will
+report excellent accuracy and have learned nothing about agriculture** — it will
+have recovered the formula used to fabricate the target. Worth confirming with
+the Data & ML track before any accuracy figure goes in the report.
+
+Mapping lives in [`dataset.py`](../src/advisory/dataset.py); the payload contract
+is unchanged, so nothing downstream had to move.
+
+### Consequences of using real data
+
+Real data has gaps and a real range, and both changed the engine's behaviour:
+
+- **`gee_temp` is missing for 95 rows, `gee_rainfall` for 26.** Missing features
+  are left as `None` and the dependent rules are suppressed — the existing
+  data-quality gate now does real work instead of theoretical work.
+- **`heat_stress` never fires.** Real `gee_temp` spans −13.1 °C to 26.6 °C
+  against an absolute 35 °C threshold. **The rule is kept anyway**: 35 °C is
+  agronomically right for the African deployment target, and lowering it to fire
+  on a West Bengal winter would be fitting the rule to the wrong place. The
+  coverage report now distinguishes "unreachable in this dataset" from "dead
+  rule", because those need opposite responses, and the golden set keeps a
+  synthetic case so the rule stays tested.
+- **`cold_stress` now fires on 5.5% of rows**, where the original columns
+  produced 4.0%.
+- **8.2% of rows have a negative `gee_ndvi`** (cloud or water), up from 6.2%.
+
 ## Known limits of the data
 
-These are properties of `data/external/yield_prediction_dataset.csv`, and they
-constrain what the advisory is allowed to claim.
+These constrain what the advisory is allowed to claim.
 
 - **No historical baseline exists.** The data is one season (2023-01 to 2023-05,
   25 fortnightly dates, 90 fields). The "typical" yield is a *within-dataset
@@ -150,10 +198,13 @@ constrain what the advisory is allowed to claim.
   [`scripts/build_crop_baselines.py`](../scripts/build_crop_baselines.py).
   Advisory copy says "typical in our records" and must never say "your five-year
   average" or "the district average" — enforced in `system.md`.
-- **The dataset is not African and is likely synthetic.** Coordinates are
-  ~22.6°N, 88.5°E (West Bengal, India). All 30 crops have near-identical yield
-  distributions (Coconut 45.6 ± 1.8 vs Wheat 41.7 ± 7.3), which real agronomy
-  does not produce. Rainfall alone correlates 0.756 with yield.
+- **The dataset is not African, and `yield` is synthetic.** Coordinates in the
+  earlier export were ~22.6°N, 88.5°E (West Bengal, India); the GEE export drops
+  latitude and longitude, so that evidence now lives only in the older file. All
+  30 crops have near-identical yield distributions (Coconut 45.6 ± 1.8 vs Wheat
+  41.7 ± 7.3), which real agronomy does not produce — and the correlation split
+  above is the clearest evidence yet that `yield` was fabricated from the
+  original feature columns.
 - **`NDWI` is discarded.** It is an exact negation of `GNDVI` (r = −1.0) and
   carries no additional information.
 - **`yield` has no units.** Carried as `yield_unit` on the payload and echoed

@@ -110,7 +110,7 @@ def test_every_driver_rule_is_exercised_by_the_set(rules):
         payload = PredictionPayload.from_dict(item["payload"])
         fired |= {a.rule_id for a in build_verdict(payload).actions}
 
-    expected = {r["id"] for r in rules["drivers"]} | {"all_clear"}
+    expected = {r["id"] for r in rules["drivers"]} | {"all_clear", "all_clear_low_band"}
     missing = expected - fired
     assert not missing, f"golden set never exercises: {sorted(missing)}"
 

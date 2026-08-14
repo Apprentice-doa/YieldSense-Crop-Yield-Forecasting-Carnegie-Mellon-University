@@ -16,19 +16,21 @@ languages:
       above: Juu ya kawaida
       unknown: Hakuna kumbukumbu ya zao hili
     sms_actions:
-      rainfall_low: Mvua ni kidogo. Mwagilia ukipata maji; subiri kuweka mbolea ya
-        juu.
+      rainfall_low: Mvua ni kidogo. Mwagilia ukipata maji; subiri kuweka mbolea juu
+        hadi umwagilie.
       rainfall_high: Mvua nyingi. Kagua mifereji na safisha njia za maji.
       soil_moisture_low: Udongo umekauka sana. Mwagilia ndani ya siku chache ukipata
         maji.
       soil_moisture_high: Udongo una unyevu. Acha kumwagilia; angalia ugonjwa wa mizizi.
-      ndvi_low: Zao si la kijani kama kawaida. Pita shambani; kagua wadudu/maeneo
-        makavu.
-      ndvi_high: Zao linakua vizuri. Endelea na utunzaji uliopo.
-      heat_stress: Joto kali. Mwagilia asubuhi mapema/jioni; weka matandazo kupooza
-        udongo.
+      ndvi_low: Zao si la kijani kama kawaida. Tembea shambani; kagua wadudu au sehemu
+        kavu.
+      ndvi_high: Zao linamea vizuri. Endelea na utunzaji uliopo.
+      heat_stress: Joto kali. Mwagilia asubuhi mapema au jioni; tandaza matandazo
+        kupooza udongo.
       cold_stress: Baridi inapunguza ukuaji. Tarajia kuvuna kuchelewa.
       all_clear: Hakuna tatizo. Endelea kawaida na jiandae kuvuna.
+      all_clear_low_band: Ishara ni sawa lakini makadirio ya mavuno ni chini. Tembea
+        shambani uangalie shida iliyojificha.
     ui_strings:
       what_to_do: 'Cha kufanya:'
   rw:
@@ -37,22 +39,23 @@ languages:
     reviewed_by: ''
     machine_translated_by: azure_openai:gpt-5.2
     band_labels:
-      critical: Munsi cyane y'ibisanzwe
-      below: Munsi y'ibisanzwe
-      on_track: Nk'ibisanzwe
-      above: Hejuru y'ibisanzwe
-      unknown: Nta gipimo gisanzwe kuri iki gihingwa
+      critical: Hasi cyane
+      below: Hasi
+      on_track: Bisanzwe
+      above: Hejuru
+      unknown: Nta bipimo by’uyu musaruro
     sms_actions:
-      rainfall_low: Imvura ni nke. Nuhira niba bishoboka; ifumbire yo hejuru uyitinde.
-      rainfall_high: Imvura nyinshi. Reba amazi asohoka; sukura imiyoboro y'amazi.
-      soil_moisture_low: Ubutaka bwumye cyane. Nuhira mu minsi mike niba ufite amazi.
-      soil_moisture_high: Ubutaka burimo amazi. Reka kuhira; jya ureba indwara z'imizi.
-      ndvi_low: Igihingwa ntikibisi nk'ibisanzwe. Genda mu murima urebe udukoko/ahumye.
-      ndvi_high: Igihingwa kirakura neza. Komeza uko usanzwe ubyitaho.
-      heat_stress: Ubushyuhe bwinshi. Nuhira kare/ni nimugoroba; shyira ibyatsi ku
-        butaka.
+      rainfall_low: Imvura ni nkeya. Niba ushoboye, kuhira; ifumbire hejuru uyitinde.
+      rainfall_high: Imvura nyinshi. Reba amazi asohoka, usukure imiyoboro y’amazi.
+      soil_moisture_low: Ubutaka bwumye cyane. Niba amazi ahari, hira mu minsi mike.
+      soil_moisture_high: Ubutaka burimo amazi. Reka kuhira; wite ku ndwara z’imizi.
+      ndvi_low: Ibihingwa ntibisa n’ibyatsi. Genda mu murima urebe udukoko n’ahumye.
+      ndvi_high: Ibihingwa birakura neza. Komeza uko usanzwe ubyitaho.
+      heat_stress: Harashyushye cyane. Hira kare/ku mugoroba, usasireho ibyatsi.
       cold_stress: Ubukonje buradindiza. Teganya gusarura bitinze.
-      all_clear: Nta kibazo. Komeza ibisanzwe, witegure gusarura.
+      all_clear: Nta kibazo. Komeza bisanzwe, witegure gusarura.
+      all_clear_low_band: Birasa bisanzwe ariko umusaruro uri hasi. Genzura ibibazo
+        bihishe.
     ui_strings:
       what_to_do: 'Icyo gukora:'
   fr:
@@ -61,24 +64,25 @@ languages:
     reviewed_by: ''
     machine_translated_by: azure_openai:gpt-5.2
     band_labels:
-      critical: Bien en dessous
-      below: En dessous
-      on_track: Comme d'habitude
-      above: Au-dessus
+      critical: Bien sous la normale
+      below: Sous la normale
+      on_track: Dans la normale
+      above: Au-dessus normal
       unknown: Pas de référence pour cette culture
     sms_actions:
       rainfall_low: Peu de pluie. Irriguez si possible; mettez l'engrais de couverture
         après.
-      rainfall_high: Fortes pluies. Vérifiez le drainage et débouchez les canaux d'eau.
+      rainfall_high: Fortes pluies. Vérifiez le drainage et débouchez les canaux.
       soil_moisture_low: Sol très sec. Irriguez d'ici quelques jours si vous avez
         de l'eau.
       soil_moisture_high: Sol humide. N'irriguez pas et surveillez les maladies des
         racines.
       ndvi_low: 'Culture moins verte. Parcourez le champ: ravageurs ou zones sèches?'
-      ndvi_high: La culture pousse bien. Gardez la même conduite.
-      heat_stress: Très chaud. Arrosez tôt matin/soir et paillez pour refroidir le
-        sol.
-      cold_stress: Le froid ralentit la croissance. Récolte plus tardive à prévoir.
-      all_clear: Aucun souci. Continuez comme d'habitude et préparez la récolte.
+      ndvi_high: Culture pousse bien. Gardez vos pratiques actuelles.
+      heat_stress: Très chaud. Arrosez matin/soir et paillez pour rafraîchir le sol.
+      cold_stress: 'Froid: la croissance ralentit. Récolte plus tardive à prévoir.'
+      all_clear: Rien à signaler. Continuez normal et préparez la récolte.
+      all_clear_low_band: Signaux OK mais rendement bas. Allez au champ chercher un
+        souci caché.
     ui_strings:
       what_to_do: 'À faire :'
