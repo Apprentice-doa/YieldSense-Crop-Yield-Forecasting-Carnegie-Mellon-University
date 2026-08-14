@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
 from src.db.models.farmer import Farmer
 from src.db.models.crop_profile import CropProfile
 
