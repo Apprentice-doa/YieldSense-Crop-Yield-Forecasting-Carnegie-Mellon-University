@@ -24,6 +24,7 @@ class Settings:
     )
     host: str = os.getenv("HOST", "0.0.0.0")
     port: int = int(os.getenv("PORT", "8000"))
+    initialize_db: bool = os.getenv("INITIALIZE_DB", "false").lower() == "true"
 
 
 settings = Settings()

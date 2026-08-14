@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Aba Mensah",
+    "farm_country": "Ghana",
+    "farm_state_region": "Ashanti",
+    "phone_number": "+233201234567",
+    "email_address": "aba.mensah@example.com",
+    "area_of_farmland": 3.5,
+    "crop_profiles": [
+      {"crop_type": "Maize", "planting_month": "April", "harvest_month": "August", "average_yield_tons": 2.4}
+    ]
+  },
+  {
+    "name": "John Okoro",
+    "farm_country": "Nigeria",
+    "farm_state_region": "Kaduna",
+    "phone_number": "+2348012345678",
+    "email_address": "john.okoro@example.com",
+    "area_of_farmland": 5.0,
+    "crop_profiles": [
+      {"crop_type": "Sorghum", "planting_month": "May", "harvest_month": "September", "average_yield_tons": 3.1}
+    ]
+  },
+  {
+    "name": "Fatima Abdullahi",
+    "farm_country": "Kenya",
+    "farm_state_region": "Nairobi",
+    "phone_number": "+254701234567",
+    "email_address": "fatima.abd@example.com",
+    "area_of_farmland": 2.0,
+    "crop_profiles": [
+      {"crop_type": "Beans", "planting_month": "March", "harvest_month": "July", "average_yield_tons": 1.2}
+    ]
+  },
+  {
+    "name": "Samuel Ndlovu",
+    "farm_country": "Zimbabwe",
+    "farm_state_region": "Mashonaland West",
+    "phone_number": "+263771234567",
+    "email_address": "samuel.nd@example.com",
+    "area_of_farmland": 4.7,
+    "crop_profiles": [
+      {"crop_type": "Maize", "planting_month": "October", "harvest_month": "February", "average_yield_tons": 2.8}
+    ]
+  },
+  {
+    "name": "Rose Kamanzi",
+    "farm_country": "Rwanda",
+    "farm_state_region": "Kigali",
+    "phone_number": "+250788123456",
+    "email_address": "rose.kamanzi@example.com",
+    "area_of_farmland": 1.8,
+    "crop_profiles": [
+      {"crop_type": "Cassava", "planting_month": "June", "harvest_month": "December", "average_yield_tons": 1.6}
+    ]
+  }
+]
