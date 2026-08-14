@@ -37,10 +37,8 @@ from src.advisory.rules import (  # noqa: E402
     load_config,
     render_rules_advisory,
 )
+from src.advisory.dataset import load_dataset, row_to_payload_dict  # noqa: E402
 from src.advisory.schemas import PredictionPayload  # noqa: E402
-
-DATA = REPO_ROOT / "data" / "external" / "yield_prediction_dataset.csv"
-FEATURES = ["NDVI", "GNDVI", "SAVI", "soil_moisture", "temperature", "rainfall"]
 
 # The dataset has no prediction intervals. We synthesise a plausible one so the
 # confidence path is exercised; flagged in the output so nobody mistakes it for
@@ -51,20 +49,15 @@ ASSUMED_AREA_HA = 1.5
 
 def row_to_payload(row: pd.Series) -> PredictionPayload:
     y = float(row["yield"])
-    return PredictionPayload(
-        field_id=str(row["field_id"]),
-        crop_type=str(row["crop_type"]),
-        predicted_yield=y,
-        date_of_image=str(row["date_of_image"]),
-        latitude=float(row["latitude"]),
-        longitude=float(row["longitude"]),
-        prediction_interval=[
-            round(y * (1 - SYNTHETIC_INTERVAL_WIDTH), 3),
-            round(y * (1 + SYNTHETIC_INTERVAL_WIDTH), 3),
-        ],
-        area_ha=ASSUMED_AREA_HA,
-        yield_unit="units/ha",
-        **{f: float(row[f]) for f in FEATURES},
+    return PredictionPayload.from_dict(
+        row_to_payload_dict(
+            row,
+            prediction_interval=[
+                round(y * (1 - SYNTHETIC_INTERVAL_WIDTH), 3),
+                round(y * (1 + SYNTHETIC_INTERVAL_WIDTH), 3),
+            ],
+            area_ha=ASSUMED_AREA_HA,
+        )
     )
 
 
@@ -74,12 +67,11 @@ def pct(n: int, total: int) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", type=Path, default=DATA)
+    ap.add_argument("--data", type=Path, default=None)
     ap.add_argument("--json", type=Path, default=None, help="also write raw counts")
     args = ap.parse_args()
 
-    df = pd.read_csv(args.data)
-    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
+    df, provenance = load_dataset(args.data)
 
     rules, _ = load_config()
     config = load_config()
@@ -143,7 +135,7 @@ def main() -> None:
         if top is not None and (top.sms_action or top.action) not in advisory.sms_text:
             sms_truncated += 1
 
-    print(f"\nAdvisory coverage over {total} rows  ({args.data.name})")
+    print(f"\nAdvisory coverage over {total} rows  ({provenance['source_file']})")
     print("=" * 66)
     print("NOTE: prediction intervals and area_ha are synthetic placeholders.")
     print("      Bands and driver rules use real feature values.\n")
@@ -158,11 +150,31 @@ def main() -> None:
         print(f"  {level:12s} {n:5d}  {pct(n, total)}")
 
     print("\nDriver rules -- fire rate")
+    by_id = {r["id"]: r for r in rules["drivers"]}
     for rule_id in all_rule_ids:
         n = fired.get(rule_id, 0)
         marker = ""
         if n == 0:
-            marker = "  <-- NEVER FIRES"
+            # A rule that never fires is either badly calibrated or simply out
+            # of reach for this dataset. Those need opposite responses -- fix
+            # the threshold, versus leave it alone -- so name which it is.
+            rule = by_id[rule_id]
+            observed = df[rule["feature"]].dropna()
+            if "absolute" in rule and not observed.empty:
+                threshold = rule["absolute"]
+                reachable = (
+                    observed.max() > threshold
+                    if rule["op"] == "gt"
+                    else observed.min() < threshold
+                )
+                if not reachable:
+                    marker = (
+                        f"  <-- unreachable here: {rule['feature']} ranges "
+                        f"{observed.min():.1f}..{observed.max():.1f}, "
+                        f"threshold {rule['op']} {threshold}"
+                    )
+            if not marker:
+                marker = "  <-- NEVER FIRES (check the threshold)"
         elif n / total > 0.60:
             marker = "  <-- fires on most rows"
         print(f"  {rule_id:20s} {n:5d}  {pct(n, total)}{marker}")

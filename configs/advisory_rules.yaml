@@ -9,7 +9,10 @@
 
 # 0.2.0 -- added all_clear + per-rule sms_action after the D5-D6 coverage run
 #          found 51% of SMS truncated and 40% of advisories with no action.
-rules_version: "0.2.0"
+# 0.3.0 -- switched feature thresholds to the real Google Earth Engine columns,
+#          and split all_clear so a below-typical forecast is never paired with
+#          a "no problems found, continue as normal" message.
+rules_version: "0.3.0"
 
 # --- Yield band -------------------------------------------------------------
 # ratio = predicted_yield / crop_baseline_mean (configs/crop_baselines.yaml).
@@ -148,6 +151,17 @@ all_clear:
   sms_action: "No problems found. Continue as normal and prepare for harvest."
   urgency: routine
   severity: none
+
+  # A below-typical forecast IS a problem, so "no problems found, continue as
+  # normal" would contradict it. When the signals look clean but the forecast
+  # is still low, say exactly that -- it is the honest message, and it points
+  # the farmer at what the satellite cannot see.
+  low_band:
+    driver: "Field signals look normal, but the forecast is still below what we usually record"
+    action: "The satellite and weather signals for this field look normal, so the low estimate is not explained by what we can see. Walk the field and check for problems the satellite misses, such as pests under the canopy, patchy soil or poor establishment."
+    sms_action: "Signals look normal but the yield estimate is low. Walk the field to check for hidden problems."
+    urgency: soon
+    severity: medium
 
 # --- Conflict resolution ----------------------------------------------------
 # Two rules can fire on the same field and give opposite instructions. A farmer

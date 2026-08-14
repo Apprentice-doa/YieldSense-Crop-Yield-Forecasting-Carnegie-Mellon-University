@@ -1,22 +1,20 @@
 {
   "field_id": "Field_69",
   "crop_type": "Rubber",
-  "predicted_yield": 51.642,
   "date_of_image": "11-12-2023",
-  "latitude": 13.028058,
-  "longitude": 77.799525,
-  "NDVI": 0.5383,
-  "GNDVI": 0.5594,
-  "SAVI": 0.8073,
+  "predicted_yield": 51.642,
+  "yield_unit": "units/ha",
+  "NDVI": 0.5041,
+  "GNDVI": 0.5353,
+  "SAVI": 0.3083,
+  "rainfall": 0.0,
+  "temperature": 18.9985,
   "soil_moisture": 17.0022,
-  "temperature": 18.6108,
-  "rainfall": 15.0063,
   "prediction_interval": [
     47.51,
     55.773
   ],
   "model_version": "fixture-v0",
-  "yield_unit": "units/ha",
   "area_ha": 1.5,
   "farmer_lang": "en"
 }

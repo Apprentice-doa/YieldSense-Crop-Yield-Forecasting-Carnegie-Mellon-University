@@ -17,37 +17,30 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import sys
+
 import pandas as pd
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DATA = REPO_ROOT / "data" / "external" / "yield_prediction_dataset.csv"
+sys.path.insert(0, str(REPO_ROOT))
+
+from src.advisory.dataset import load_dataset, row_to_payload_dict  # noqa: E402
+
 BASELINES = REPO_ROOT / "configs" / "crop_baselines.yaml"
 OUT_DIR = REPO_ROOT / "tests" / "fixtures" / "advisory"
 
-FEATURES = ["NDVI", "GNDVI", "SAVI", "soil_moisture", "temperature", "rainfall"]
-
 
 def row_to_payload(row: pd.Series, **overrides) -> dict:
-    payload = {
-        "field_id": str(row["field_id"]),
-        "crop_type": str(row["crop_type"]),
-        "predicted_yield": round(float(row["yield"]), 3),
-        "date_of_image": str(row["date_of_image"]),
-        "latitude": round(float(row["latitude"]), 6),
-        "longitude": round(float(row["longitude"]), 6),
-        **{f: round(float(row[f]), 4) for f in FEATURES},
-        "prediction_interval": [
-            round(float(row["yield"]) * 0.92, 3),
-            round(float(row["yield"]) * 1.08, 3),
-        ],
+    y = float(row["yield"])
+    defaults = {
+        "prediction_interval": [round(y * 0.92, 3), round(y * 1.08, 3)],
         "model_version": "fixture-v0",
-        "yield_unit": "units/ha",
         "area_ha": 1.5,
         "farmer_lang": "en",
     }
-    payload.update(overrides)
-    return payload
+    defaults.update(overrides)  # a caller overriding a default must win
+    return row_to_payload_dict(row, **defaults)
 
 
 def pick_band_rows(df: pd.DataFrame, baselines: dict) -> dict:
@@ -74,8 +67,8 @@ def pick_band_rows(df: pd.DataFrame, baselines: dict) -> dict:
 
 
 def main() -> None:
-    df = pd.read_csv(DATA)
-    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
+    df, provenance = load_dataset()
+    print(f"source: {provenance['source_file']}")
     with BASELINES.open(encoding="utf-8") as fh:
         baselines = yaml.safe_load(fh)
 

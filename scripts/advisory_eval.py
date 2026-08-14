@@ -166,7 +166,10 @@ def report(results: List[Dict[str, Any]], rules: Dict[str, Any]) -> int:
         print(f"  {stratum:24s} {n:3d}")
 
     print("\nRule coverage across the set")
-    all_rule_ids = [r["id"] for r in rules["drivers"]] + ["all_clear"]
+    all_rule_ids = [r["id"] for r in rules["drivers"]] + [
+        "all_clear",
+        "all_clear_low_band",
+    ]
     fired = Counter(rid for r in results for rid in r["rules_fired"])
     unexercised = []
     for rule_id in all_rule_ids:

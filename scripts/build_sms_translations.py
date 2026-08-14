@@ -93,6 +93,7 @@ def source_strings(rules: Dict[str, Any]) -> Dict[str, Any]:
         "sms_actions": {
             **{r["id"]: r["sms_action"] for r in rules["drivers"]},
             "all_clear": rules["all_clear"]["sms_action"],
+            "all_clear_low_band": rules["all_clear"]["low_band"]["sms_action"],
         },
         # Fixed UI microcopy. Without this the web advisory shows an English
         # section heading above Kinyarwanda body text.

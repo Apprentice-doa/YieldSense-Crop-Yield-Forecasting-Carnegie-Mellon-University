@@ -161,24 +161,38 @@ def evaluate_drivers(
         for rule in fired
     ]
     drivers = [rule["driver"] for rule in fired]
-
-    # A healthy field still deserves a straight answer rather than silence.
-    if not actions and "all_clear" in rules:
-        cfg = rules["all_clear"]
-        actions.append(
-            Action(
-                rule_id="all_clear",
-                action=cfg["action"],
-                why=cfg["driver"],
-                urgency=cfg["urgency"],
-                severity=cfg["severity"],
-                stage="in_season",
-                sms_action=cfg.get("sms_action"),
-            )
-        )
-        drivers.append(cfg["driver"])
-
     return actions, drivers, suppressed
+
+
+def build_all_clear(band: str, rules: Dict[str, Any]) -> Optional[Action]:
+    """The action for a field where no driver rule fired.
+
+    A healthy field deserves a straight answer rather than silence. But which
+    answer depends on the band: telling a farmer "no problems found, continue as
+    normal" while the forecast is well below typical contradicts the forecast.
+    So a low band gets a different message -- the signals are clean, the estimate
+    is still low, go and look for what the satellite cannot see.
+    """
+    cfg = rules.get("all_clear")
+    if not cfg:
+        return None
+
+    # Distinct ids, not just distinct copy: the SMS translation lookup keys on
+    # rule_id, and metrics can then show how often each variant fires.
+    rule_id = "all_clear"
+    if band in ("critical", "below") and "low_band" in cfg:
+        cfg = cfg["low_band"]
+        rule_id = "all_clear_low_band"
+
+    return Action(
+        rule_id=rule_id,
+        action=cfg["action"],
+        why=cfg["driver"],
+        urgency=cfg["urgency"],
+        severity=cfg["severity"],
+        stage="in_season",
+        sms_action=cfg.get("sms_action"),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -233,6 +247,14 @@ def build_verdict(
     )
 
     actions, drivers, suppressed = evaluate_drivers(payload, rules, baselines, flags)
+
+    # Decided here rather than in evaluate_drivers, because which all-clear
+    # message is honest depends on the band, which drivers do not know about.
+    if not actions:
+        all_clear = build_all_clear(band, rules)
+        if all_clear is not None:
+            actions.append(all_clear)
+            drivers.append(all_clear.why)
 
     # The band itself is a driver worth stating, and a low band earns its own action.
     if band in ("critical", "below"):

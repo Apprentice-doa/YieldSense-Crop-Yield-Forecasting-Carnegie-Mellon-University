@@ -46,6 +46,27 @@ def ids(paths):
     return [p.stem for p in paths]
 
 
+def healthy_payload(baselines, crop="Rice", **overrides) -> PredictionPayload:
+    """A field with nothing wrong with it, per the CURRENT thresholds.
+
+    Every feature sits at its median, so no percentile rule can fire whichever
+    dataset the percentiles were derived from. Hardcoding values here made two
+    tests silently stop testing anything when the GEE columns replaced the
+    original ones.
+    """
+    median = {f: v["p50"] for f, v in baselines["features"].items()}
+    payload = PredictionPayload(
+        field_id="Field_healthy",
+        crop_type=crop,
+        predicted_yield=float(baselines["crops"][crop]["mean"]),
+        area_ha=1.0,
+        **median,
+    )
+    for key, value in overrides.items():
+        setattr(payload, key, value)
+    return payload
+
+
 # --------------------------------------------------------------------------- #
 # Every fixture must produce a usable advisory
 # --------------------------------------------------------------------------- #
@@ -94,25 +115,40 @@ def test_every_advisory_has_an_in_season_action(path, config):
 
 def test_all_clear_fires_only_when_nothing_else_does(config, rules):
     """The all-clear must never sit alongside a real problem."""
-    healthy = PredictionPayload(
-        field_id="Field_healthy",
-        crop_type="Rice",
-        predicted_yield=43.7,
-        NDVI=0.36,
-        GNDVI=0.38,
-        SAVI=0.54,
-        soil_moisture=28.0,
-        temperature=20.0,
-        rainfall=9.5,
-        area_ha=1.0,
-    )
-    verdict = build_verdict(healthy, config)
+    _, baselines = config
+    verdict = build_verdict(healthy_payload(baselines), config)
     fired = {a.rule_id for a in verdict.actions}
-    assert "all_clear" in fired
+    assert fired & {"all_clear", "all_clear_low_band"}
     assert len([a for a in verdict.actions if a.stage == "in_season"]) == 1
 
-    troubled = build_verdict(load_payload(FIXTURE_DIR / "band_critical.json"), config)
-    assert "all_clear" not in {a.rule_id for a in troubled.actions}
+
+def test_low_band_never_gets_a_no_problems_message(config, rules):
+    """A below-typical forecast IS a problem; "continue as normal" contradicts it.
+
+    Surfaced by the GEE dataset: a critical-band field whose signals all look
+    clean would otherwise have been told "No problems found. Continue as normal"
+    directly above "plan for a smaller harvest than usual".
+    """
+    _, baselines = config
+    payload = healthy_payload(baselines)
+    payload.predicted_yield = baselines["crops"]["Rice"]["mean"] * 0.5
+
+    verdict = build_verdict(payload, config)
+    assert verdict.band == "critical"
+
+    all_clear = next(a for a in verdict.actions if a.rule_id == "all_clear_low_band")
+    assert all_clear.action == rules["all_clear"]["low_band"]["action"]
+    assert "no problems" not in all_clear.action.lower()
+    assert "continue as normal" not in all_clear.action.lower()
+    assert all_clear.urgency == "soon", "a low forecast is not routine"
+
+
+def test_healthy_field_on_a_normal_band_gets_the_plain_all_clear(config, rules):
+    _, baselines = config
+    verdict = build_verdict(healthy_payload(baselines), config)
+    assert verdict.band == "on_track"
+    all_clear = next(a for a in verdict.actions if a.rule_id == "all_clear")
+    assert all_clear.action == rules["all_clear"]["action"]
 
 
 def test_every_driver_rule_has_an_sms_variant(config):
@@ -125,6 +161,7 @@ def test_every_driver_rule_has_an_sms_variant(config):
             f"long to fit beside the headline in 160"
         )
     assert rules["all_clear"].get("sms_action")
+    assert rules["all_clear"]["low_band"].get("sms_action")
 
 
 @pytest.mark.parametrize("path", FIXTURES, ids=ids(FIXTURES))
@@ -148,8 +185,19 @@ def test_no_contradictory_water_advice(path, config):
 
 
 def test_conflict_keeps_the_field_measurement_over_the_catchment_signal(config):
-    """Low rainfall + wet soil: trust the soil probe, not the rain gauge."""
-    verdict = build_verdict(load_payload(FIXTURE_DIR / "edge_no_area.json"), config)
+    """Low rainfall + wet soil: trust the soil probe, not the rain gauge.
+
+    The payload is built from the current percentiles rather than hardcoded.
+    Fixed feature values silently stop testing anything when the dataset behind
+    those percentiles changes -- which is exactly what happened when the GEE
+    columns replaced the original ones.
+    """
+    rules, baselines = config
+    payload = healthy_payload(baselines)
+    payload.rainfall = baselines["features"]["rainfall"]["p10"]
+    payload.soil_moisture = baselines["features"]["soil_moisture"]["p90"] + 1
+
+    verdict = build_verdict(payload, config)
     fired = {a.rule_id for a in verdict.actions}
     assert "soil_moisture_high" in fired
     assert "rainfall_low" in verdict.suppressed_rules

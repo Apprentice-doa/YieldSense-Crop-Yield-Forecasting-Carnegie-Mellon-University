@@ -104,19 +104,26 @@ flake8 src/ tests/
 
 ## Data
 
-`data/external/yield_prediction_dataset.csv` — 1,625 rows, 90 fields, 30 crops,
-Jan–May 2023.
+`data/raw/crop_prediction_gee_computations.csv` — 1,625 rows, 90 fields, 30
+crops, Jan–May 2023, carrying both the original feature columns and real Google
+Earth Engine computations (`gee_ndvi`, `gee_rainfall`, `gee_temp`, …).
 
 **Known limitations, stated plainly** because they constrain what the system may
 honestly claim:
 
-- **Single season only.** There is no multi-year history, so "typical" is a
+- **`yield` appears to be synthetic.** The original feature columns predict it
+  almost perfectly (rainfall alone, r = 0.756) while the real GEE measurements
+  barely do (r = 0.162). The most economical explanation is that `yield` was
+  generated *from* those columns. **A model trained on them will report
+  excellent accuracy and have learned nothing about agriculture.**
+- **Single season only.** No multi-year history, so "typical" is a
   within-dataset crop mean, not a district historical average.
-- **Not African data.** Coordinates are ~22.6°N, 88.5°E (West Bengal, India).
-- **Likely synthetic.** All 30 crops have near-identical yield distributions,
-  which real agronomy does not produce.
+- **Not African data.** The earlier export placed the fields at ~22.6°N, 88.5°E
+  (West Bengal, India); the GEE export drops latitude and longitude.
 - **`yield` has no units**, and there is no field area, so post-harvest
   quantities are structurally correct but not yet interpretable.
+- **Real data has gaps.** `gee_temp` is missing for 95 rows and `gee_rainfall`
+  for 26. Handled, not imputed.
 
 These are documented rather than worked around. Advisory copy is written to
 match what the data actually supports.

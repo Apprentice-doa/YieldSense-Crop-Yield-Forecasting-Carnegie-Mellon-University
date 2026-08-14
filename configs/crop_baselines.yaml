@@ -1,6 +1,16 @@
 _generated_by: scripts/build_crop_baselines.py
-_source: data/external/yield_prediction_dataset.csv
+_source: data/raw/crop_prediction_gee_computations.csv
 _rows: 1625
+_feature_columns:
+  NDVI: gee_ndvi
+  GNDVI: gee_gndvi
+  SAVI: gee_savi
+  rainfall: gee_rainfall
+  temperature: gee_temp
+  soil_moisture: soil_moisture
+_missing_values:
+  rainfall: 26
+  temperature: 95
 _caveat: Single-season (2023-01 to 2023-05) within-dataset baseline. NOT a multi-year
   district average. Advisory copy must not claim otherwise.
 global_yield:
@@ -189,38 +199,38 @@ crops:
     p90: 51.394
 features:
   NDVI:
-    p10: 0.124
-    p25: 0.237
-    p50: 0.361
-    p75: 0.505
-    p90: 0.653
+    p10: 0.046
+    p25: 0.286
+    p50: 0.415
+    p75: 0.547
+    p90: 0.701
   GNDVI:
-    p10: 0.112
-    p25: 0.303
-    p50: 0.412
-    p75: 0.517
-    p90: 0.603
+    p10: 0.045
+    p25: 0.308
+    p50: 0.466
+    p75: 0.547
+    p90: 0.647
   SAVI:
-    p10: 0.186
-    p25: 0.356
-    p50: 0.542
-    p75: 0.757
-    p90: 0.979
+    p10: 0.046
+    p25: 0.176
+    p50: 0.249
+    p75: 0.324
+    p90: 0.439
+  rainfall:
+    p10: 0.0
+    p25: 0.015
+    p50: 1.187
+    p75: 4.228
+    p90: 10.146
+  temperature:
+    p10: 11.594
+    p25: 14.4
+    p50: 18.949
+    p75: 21.781
+    p90: 23.788
   soil_moisture:
     p10: 13.686
     p25: 19.535
     p50: 26.238
     p75: 33.296
     p90: 43.823
-  temperature:
-    p10: 7.03
-    p25: 12.588
-    p50: 19.982
-    p75: 26.181
-    p90: 33.784
-  rainfall:
-    p10: 5.327
-    p25: 6.27
-    p50: 8.009
-    p75: 13.095
-    p90: 15.027

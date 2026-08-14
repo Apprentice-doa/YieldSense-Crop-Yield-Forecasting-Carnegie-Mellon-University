@@ -29,11 +29,11 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-DATA = REPO_ROOT / "data" / "external" / "yield_prediction_dataset.csv"
+from src.advisory.dataset import load_dataset, row_to_payload_dict  # noqa: E402
+
 BASELINES = REPO_ROOT / "configs" / "crop_baselines.yaml"
 OUT = REPO_ROOT / "tests" / "fixtures" / "golden" / "golden_set.json"
 
-FEATURES = ["NDVI", "GNDVI", "SAVI", "soil_moisture", "temperature", "rainfall"]
 PER_BAND = 6
 ASSUMED_AREA_HA = 1.5
 INTERVAL_WIDTH = 0.08
@@ -41,25 +41,17 @@ INTERVAL_WIDTH = 0.08
 
 def to_payload(row: pd.Series, **overrides) -> Dict[str, Any]:
     y = float(row["yield"])
-    payload = {
-        "field_id": str(row["field_id"]),
-        "crop_type": str(row["crop_type"]),
-        "predicted_yield": round(y, 3),
-        "date_of_image": str(row["date_of_image"]),
-        "latitude": round(float(row["latitude"]), 6),
-        "longitude": round(float(row["longitude"]), 6),
-        **{f: round(float(row[f]), 4) for f in FEATURES},
+    defaults: Dict[str, Any] = {
         "prediction_interval": [
             round(y * (1 - INTERVAL_WIDTH), 3),
             round(y * (1 + INTERVAL_WIDTH), 3),
         ],
         "model_version": "golden-v0",
-        "yield_unit": "units/ha",
         "area_ha": ASSUMED_AREA_HA,
         "farmer_lang": "en",
     }
-    payload.update(overrides)
-    return payload
+    defaults.update(overrides)  # a caller overriding a default must win
+    return row_to_payload_dict(row, **defaults)
 
 
 def spread_across_crops(subset: pd.DataFrame, n: int) -> List[pd.Series]:
@@ -85,8 +77,8 @@ def spread_across_crops(subset: pd.DataFrame, n: int) -> List[pd.Series]:
 
 
 def main() -> None:
-    df = pd.read_csv(DATA)
-    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
+    df, provenance = load_dataset()
+    print(f"source: {provenance['source_file']}")
     with BASELINES.open(encoding="utf-8") as fh:
         baselines = yaml.safe_load(fh)
 
