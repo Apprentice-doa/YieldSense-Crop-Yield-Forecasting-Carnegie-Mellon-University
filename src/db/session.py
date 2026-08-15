@@ -1,12 +1,12 @@
 """Database session helpers for the API runtime."""
-
 from __future__ import annotations
-
+import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-import os
 from src.db.base import Base
+
+load_dotenv()
 
 engine = create_engine(
     os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/YieldLensDb"),

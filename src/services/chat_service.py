@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from models.response import ChatResponse
 from src.services.farmer_service import FarmerService
 from src.services.summary_service import SYSTEM_PROMPT, _get_client, _get_deployment
-from tools import browser, db as db_tools
+from tools import browser, db as db_tools, weather as weather_tools
 
 SESSION_TTL = int(os.getenv("CHAT_SESSION_TTL_SECONDS", 7200))  # 2 hours
 
@@ -114,13 +114,27 @@ _TOOLS = [
         "type": "function",
         "function": {
             "name": "web_search",
-            "description": "Search the web for market prices, weather, news or agronomic advice.",
+            "description": "Search the web for market prices, news or agronomic advice.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "Search query"}
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get current weather and 7-day forecast for the farmer's location.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string", "description": "Location name e.g. Nairobi, Kenya"}
+                },
+                "required": ["location"],
             },
         },
     },
@@ -136,22 +150,31 @@ def _execute_tool(name: str, args: dict, farmer_id: int, db: Session) -> tuple[s
         results = browser.search(args.get("query", ""), max_results=3)
         snippets = "\n".join(f"- {r['title']}: {r['snippet']}" for r in results)
         return snippets, chart
+    if name == "get_weather":
+        data = weather_tools.get_weather(args.get("location", ""))
+        return json.dumps(data), chart
     return "", chart
 
 def _build_system_prompt(profile: dict) -> str:
     if not profile:
         return SYSTEM_PROMPT
 
-    crops = ", ".join(cp["crop_type"] for cp in profile.get("crop_profiles", [])) or "unknown"
+    crop_lines = "\n".join(
+        f"  - {cp['crop_type']}: planted {cp['planting_month']}, harvest {cp['harvest_month']}, avg yield {cp['average_yield_tons']} tons"
+        for cp in profile.get("crop_profiles", [])
+    ) or "  - unknown"
+    location = f"{profile.get('farm_state_region')}, {profile.get('farm_country')}"
     return (
         f"{SYSTEM_PROMPT}\n\n"
         f"--- FARMER PROFILE ---\n"
-        f"Name            : {profile.get('name')}\n"
-        f"Location        : {profile.get('farm_state_region')}, {profile.get('farm_country')}\n"
-        f"Farm size       : {profile.get('area_of_farmland')} ha\n"
-        f"Crops           : {crops}\n"
+        f"Name      : {profile.get('name')}\n"
+        f"Location  : {location}\n"
+        f"Farm size : {profile.get('area_of_farmland')} ha\n"
+        f"Crops     :\n{crop_lines}\n"
         f"----------------------\n"
-        f"Always address the farmer by name. Only share this farmer's own data."
+        f"Always address the farmer by name. Use the crop planting and harvest months above "
+        f"to give season-aware advice. Only share this farmer's own data.\n\n"
+        f"RESPONSE FORMAT: 2-3 sentences only. Stop after the 3rd sentence."
     )
 
 def chat(
@@ -175,26 +198,32 @@ def chat(
     history = _load_history(session_id, conv_id)
     history.append({"role": "user", "content": user_message})
     messages = [{"role": "system", "content": system_prompt}] + history
+
     chart: dict[str, Any] | None = None
-    response = _get_client().chat.completions.create(
-        model=_get_deployment(),
-        messages=messages,
-        tools=_TOOLS,
-        tool_choice="auto",
-    )
-    msg = response.choices[0].message
-    if msg.tool_calls:
-        messages.append(msg)
-        for tc in msg.tool_calls:
-            args = json.loads(tc.function.arguments or "{}")
-            result, tool_chart = _execute_tool(tc.function.name, args, farmer_id, db)
-            chart = tool_chart or chart
-            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+    tools_called: list[str] = []
+    # Agentic loop — LLM reasons and calls tools until it produces a final reply
+    for _ in range(10):  # max 10 iterations to prevent infinite loops
         response = _get_client().chat.completions.create(
             model=_get_deployment(),
             messages=messages,
+            tools=_TOOLS,
+            tool_choice="auto",
         )
         msg = response.choices[0].message
+
+        if not msg.tool_calls:
+            break
+
+        messages.append(msg)
+        for tc in msg.tool_calls:
+            args = json.loads(tc.function.arguments or "{}")
+            tools_called.append(f"{tc.function.name}({args})")
+            result, tool_chart = _execute_tool(tc.function.name, args, farmer_id, db)
+            print(f"[tool result] {tc.function.name} -> {result[:200]}")
+            chart = tool_chart or chart
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": result})
+
+    print(f"[tools called] {tools_called}")
 
     assistant_reply = msg.content.strip()
     message_id = str(uuid.uuid4())
