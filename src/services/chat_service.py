@@ -7,6 +7,7 @@ import redis
 from sqlalchemy.orm import Session
 from models.response import ChatResponse
 from src.services.farmer_service import FarmerService
+from src.services.chat_persistence import ChatPersistenceService
 from src.services.summary_service import SYSTEM_PROMPT, _get_client, _get_deployment
 from tools import browser, db as db_tools, weather as weather_tools
 
@@ -88,6 +89,21 @@ def _save_history(session_id: str, conversation_id: str, history: list[dict]) ->
     r = _get_redis()
     key = _conv_key(session_id, conversation_id)
     r.setex(key, SESSION_TTL, json.dumps(history))
+
+def _database_history(conversation_id: str, persistence: ChatPersistenceService) -> list[dict]:
+    """Rebuild LLM context after the short-lived Redis cache expires."""
+    history: list[dict] = []
+    for message in persistence.get_conversation_messages(conversation_id, limit=50):
+        if message.sender_type.value == "farmer":
+            role = "user"
+        elif message.sender_type.value == "ai":
+            role = "assistant"
+        else:
+            # System and advisor records are preserved for audit/history but are
+            # not valid OpenAI chat roles for this conversation context.
+            continue
+        history.append({"role": role, "content": message.content})
+    return history
 
 def new_conversation(session_id: str) -> str:
     """Start a fresh conversation within an existing session. Returns new conversation_id."""
@@ -195,7 +211,25 @@ def chat(
     conv_id = conversation_id or meta["active_conversation_id"]
     profile = _get_farmer_profile(farmer_id, db)
     system_prompt = _build_system_prompt(profile)
+    persistence = ChatPersistenceService(db)
+    conversation = persistence.get_or_create_chat_conversation(
+        farmer_id=farmer_id,
+        external_id=conv_id,
+        title=user_message.strip()[:120] or "Farmer chat",
+    )
+
     history = _load_history(session_id, conv_id)
+    if not history:
+        history = _database_history(conv_id, persistence)
+
+    # Save the farmer's message before calling the LLM, so a failed generation
+    # never loses what the farmer asked.
+    persistence.save_message(
+        conversation_id=conversation.id,
+        farmer_id=farmer_id,
+        content=user_message,
+        sender_type="farmer",
+    )
     history.append({"role": "user", "content": user_message})
     messages = [{"role": "system", "content": system_prompt}] + history
 
@@ -230,11 +264,19 @@ def chat(
     history.append({"role": "assistant", "content": assistant_reply, "message_id": message_id})
     _save_history(session_id, conv_id, history)
 
+    persisted_reply = persistence.save_message(
+        conversation_id=conversation.id,
+        farmer_id=farmer_id,
+        content=assistant_reply,
+        sender_type="ai",
+        context=json.dumps({"tools_called": tools_called}) if tools_called else None,
+    )
+
     return ChatResponse(
         message=assistant_reply,
         language=meta["language"],
         session_id=session_id,
         conversation_id=conv_id,
-        message_id=message_id,
+        message_id=str(persisted_reply.id),
         chart=chart,
     )

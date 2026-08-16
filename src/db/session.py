@@ -23,6 +23,9 @@ def get_db():
 
 def init_db():
     """Create all tables in the database based on ORM models."""
+    # Import every model before inspecting metadata.  This keeps table creation
+    # reliable for scripts that import this module without importing a router.
+    import src.db.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
 
 
@@ -33,6 +36,8 @@ def tables_exist():
     return {
         "farmers": "farmers" in existing_tables,
         "crop_profiles": "crop_profiles" in existing_tables,
+        "conversations": "conversations" in existing_tables,
+        "messages": "messages" in existing_tables,
     }
 
 
