@@ -11,18 +11,8 @@ from src.db.base import Base
 
 
 class SenderType(str, enum.Enum):
-    """Type of message sender."""
     FARMER = "farmer"
     AI = "ai"
-    SYSTEM = "system"
-    ADVISOR = "advisor"
-
-
-class MessageType(str, enum.Enum):
-    """Type of message content."""
-    TEXT = "text"
-    SYSTEM = "system"
-    ALERT = "alert"
 
 
 class Conversation(Base):
@@ -38,16 +28,9 @@ class Conversation(Base):
     # while providing a stable public identifier for history retrieval.
     external_id = Column(String(36), unique=True, nullable=True, index=True)
     
-    # Metadata
-    title = Column(String, nullable=True)  # Optional title/topic
-    description = Column(Text, nullable=True)
-    
-    # Context (for AI/recommendation context)
-    context_type = Column(String, nullable=True)  # e.g., "yield_prediction", "weather_advisory", "general"
-    context_data = Column(String, nullable=True)  # JSON string with context metadata
-    
-    # Status
-    is_active = Column(String, default="active")  # active, archived, closed
+    title = Column(String, nullable=True)
+    context_type = Column(String, nullable=True)
+    is_active = Column(String, default="active")  # active, archived
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -72,18 +55,11 @@ class Message(Base):
     conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
     farmer_id = Column(Integer, ForeignKey("farmers.id"), nullable=False, index=True)
     
-    # Message details
     sender_type = Column(SQLEnum(SenderType), default=SenderType.FARMER, nullable=False)
     content = Column(Text, nullable=False)
-    message_type = Column(SQLEnum(MessageType), default=MessageType.TEXT, nullable=False)
-    
-    # Metadata (renamed from metadata to avoid SQLAlchemy conflict)
-    context = Column(Text, nullable=True)  # JSON string for additional data
-    is_read = Column(String, default="unread")  # unread, read
-    
-    # Timestamps
+    context = Column(Text, nullable=True)  # JSON string for tool call metadata
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relationships
     conversation = relationship("Conversation", back_populates="messages")

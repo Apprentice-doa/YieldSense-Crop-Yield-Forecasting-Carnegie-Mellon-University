@@ -1,19 +1,19 @@
-"""Chat controller for managing conversations and messages."""
+"""Chat controller for conversation history and management."""
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from src.db.session import get_db
 from src.services.chat_persistence import ChatPersistenceService
+from src.services.chat_service import chat, new_conversation
 from src.utils.security import AuthenticatedFarmer, get_current_farmer, require_farmer_access
 from src.schemas.chat_schema import (
-    ConversationCreateRequest,
     ConversationResponse,
     ConversationDetailResponse,
-    MessageCreateRequest,
     MessageResponse,
-    SendMessageRequest,
 )
+from models.request import ChatRequest
+from models.response import ChatResponse
 
 router = APIRouter(
     prefix="/chat",
@@ -34,39 +34,37 @@ def _owned_conversation(
     return conversation
 
 
-@router.post("/conversations", response_model=ConversationResponse)
-async def create_conversation(
-    payload: ConversationCreateRequest,
-    farmer_id: int,
+@router.post("", response_model=ChatResponse)
+async def chat_endpoint(
+    payload: ChatRequest,
     db: Session = Depends(get_db),
     current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> ConversationResponse:
-    """Create a new conversation.
-    
-    - Each conversation is a thread of related messages
-    - Can be titled and have optional context (yield_prediction, weather, etc)
-    """
-    require_farmer_access(farmer_id, current)
-    svc = ChatPersistenceService(db)
-    conv = svc.create_conversation(
-        farmer_id=farmer_id,
-        title=payload.title,
-        description=payload.description,
-        context_type=payload.context_type,
+) -> ChatResponse:
+    """Send a message and get an AI reply."""
+    require_farmer_access(payload.farmer_id, current)
+    if payload.session_id != current.session_id:
+        raise HTTPException(status_code=403, detail="The chat session does not belong to this token")
+    return chat(
+        session_id=payload.session_id,
+        farmer_id=payload.farmer_id,
+        user_message=payload.message,
+        db=db,
+        conversation_id=payload.conversation_id,
     )
-    
-    return ConversationResponse(
-        id=conv.id,
-        external_id=conv.external_id,
-        farmer_id=conv.farmer_id,
-        title=conv.title,
-        description=conv.description,
-        context_type=conv.context_type,
-        is_active=conv.is_active,
-        created_at=conv.created_at,
-        updated_at=conv.updated_at,
-        message_count=0,
-    )
+
+
+@router.post("/new-conversation")
+async def new_conversation_endpoint(
+    session_id: str,
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> dict:
+    """Start a fresh conversation within an existing session."""
+    if session_id != current.session_id:
+        raise HTTPException(status_code=403, detail="The chat session does not belong to this token")
+    try:
+        return {"conversation_id": new_conversation(session_id)}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.get("/conversations", response_model=list[ConversationResponse])
@@ -91,7 +89,6 @@ async def get_farmer_conversations(
             external_id=c.external_id,
             farmer_id=c.farmer_id,
             title=c.title,
-            description=c.description,
             context_type=c.context_type,
             is_active=c.is_active,
             created_at=c.created_at,
@@ -123,7 +120,6 @@ async def get_conversation(
         external_id=conv.external_id,
         farmer_id=conv.farmer_id,
         title=conv.title,
-        description=conv.description,
         context_type=conv.context_type,
         is_active=conv.is_active,
         created_at=conv.created_at,
@@ -135,76 +131,11 @@ async def get_conversation(
                 farmer_id=m.farmer_id,
                 sender_type=m.sender_type.value,
                 content=m.content,
-                message_type=m.message_type.value,
-                is_read=m.is_read,
                 created_at=m.created_at,
             )
             for m in messages
         ],
     )
-
-
-@router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse)
-async def send_message(
-    conversation_id: int,
-    payload: SendMessageRequest,
-    farmer_id: int,
-    db: Session = Depends(get_db),
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> MessageResponse:
-    """Send a message in a conversation.
-    
-    - Farmer sends a message (sender_type = farmer)
-    - Can integrate with AI service to generate AI response
-    """
-    svc = ChatPersistenceService(db)
-    require_farmer_access(farmer_id, current)
-    _owned_conversation(svc, conversation_id, current)
-    
-    try:
-        message = svc.save_message(
-            conversation_id=conversation_id,
-            farmer_id=farmer_id,
-            content=payload.content,
-            sender_type="farmer",
-            message_type=payload.message_type,
-        )
-    except ValueError as e:
-        if "conversation_not_found" in str(e):
-            raise HTTPException(status_code=404, detail="Conversation not found")
-        raise
-    
-    return MessageResponse(
-        id=message.id,
-        conversation_id=message.conversation_id,
-        farmer_id=message.farmer_id,
-        sender_type=message.sender_type.value,
-        content=message.content,
-        message_type=message.message_type.value,
-        is_read=message.is_read,
-        created_at=message.created_at,
-    )
-
-
-@router.post("/conversations/{conversation_id}/messages/{message_id}/read")
-async def mark_message_read(
-    conversation_id: int,
-    message_id: int,
-    db: Session = Depends(get_db),
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> dict:
-    """Mark a message as read."""
-    svc = ChatPersistenceService(db)
-    conversation = _owned_conversation(svc, conversation_id, current)
-    message = svc.get_message(message_id)
-    if not message or message.conversation_id != conversation.id:
-        raise HTTPException(status_code=404, detail="Message not found")
-    ok = svc.mark_message_as_read(message_id)
-    
-    if not ok:
-        raise HTTPException(status_code=404, detail="Message not found")
-    
-    return {"status": "success", "message_id": message_id}
 
 
 @router.post("/conversations/{conversation_id}/read")
@@ -219,50 +150,6 @@ async def mark_conversation_read(
     svc.mark_conversation_as_read(conversation_id)
     
     return {"status": "success", "conversation_id": conversation_id}
-
-
-@router.get("/conversations/{conversation_id}/unread")
-async def get_unread_messages(
-    conversation_id: int,
-    db: Session = Depends(get_db),
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> dict:
-    """Get unread messages in a conversation."""
-    svc = ChatPersistenceService(db)
-    _owned_conversation(svc, conversation_id, current)
-    unread = svc.get_unread_messages(conversation_id)
-    
-    return {
-        "conversation_id": conversation_id,
-        "unread_count": len(unread),
-        "messages": [
-            MessageResponse(
-                id=m.id,
-                conversation_id=m.conversation_id,
-                farmer_id=m.farmer_id,
-                sender_type=m.sender_type.value,
-                content=m.content,
-                message_type=m.message_type.value,
-                is_read=m.is_read,
-                created_at=m.created_at,
-            )
-            for m in unread
-        ],
-    }
-
-
-@router.get("/unread-count")
-async def get_unread_count(
-    farmer_id: int,
-    db: Session = Depends(get_db),
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> dict:
-    """Get total unread message count for a farmer."""
-    require_farmer_access(farmer_id, current)
-    svc = ChatPersistenceService(db)
-    count = svc.get_farmer_unread_count(farmer_id)
-    
-    return {"farmer_id": farmer_id, "unread_count": count}
 
 
 @router.post("/conversations/{conversation_id}/archive")
@@ -282,18 +169,3 @@ async def archive_conversation(
     return {"status": "success", "conversation_id": conversation_id, "is_active": "archived"}
 
 
-@router.get("/conversations/{conversation_id}/summary")
-async def get_conversation_summary(
-    conversation_id: int,
-    db: Session = Depends(get_db),
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> dict:
-    """Get a summary of a conversation."""
-    svc = ChatPersistenceService(db)
-    _owned_conversation(svc, conversation_id, current)
-    summary = svc.get_conversation_summary(conversation_id)
-    
-    if not summary:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    return summary

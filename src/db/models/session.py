@@ -21,7 +21,6 @@ class FarmerSession(Base):
     # Token fields
     access_token = Column(String, nullable=False)
     refresh_token = Column(String, nullable=False, unique=True)
-    token_type = Column(String, default="Bearer")
     
     # Expiry times
     access_token_expires_at = Column(DateTime, nullable=False)

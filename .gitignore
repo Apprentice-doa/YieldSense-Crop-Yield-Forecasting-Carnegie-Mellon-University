@@ -1,2 +1,23 @@
 .env
 .venv
+.vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (except gitkeeps)
+data/external/*.csv
+data/raw/*.csv
+data/processed/*
+!data/**/.gitkeep

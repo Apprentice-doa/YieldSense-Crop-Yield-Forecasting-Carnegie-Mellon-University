@@ -1,14 +1,12 @@
 from __future__ import annotations
-from typing import Dict, List, Optional
+from typing import Dict, List
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from src.db.session import get_db
 from src.services.farmer_service import FarmerService
-from src.services.chat_service import chat, new_conversation
 from src.utils.security import AuthenticatedFarmer, get_current_farmer, require_farmer_access
-from models.request import FarmerOnboardingCreate, FarmerOnboardingUpdate, ChatRequest
-from models.response import ChatResponse, FarmerOut
+from models.request import FarmerOnboardingCreate, FarmerOnboardingUpdate
+from models.response import FarmerOut
 
 router = APIRouter()
 
@@ -74,31 +72,3 @@ async def delete_farmer(
         raise HTTPException(status_code=404, detail="Farmer not found")
     return {"deleted": True}
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(
-    payload: ChatRequest,
-    db: Session = Depends(get_db),
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> ChatResponse:
-    require_farmer_access(payload.farmer_id, current)
-    if payload.session_id != current.session_id:
-        raise HTTPException(status_code=403, detail="The chat session does not belong to this token")
-    return chat(
-        session_id=payload.session_id,
-        farmer_id=payload.farmer_id,
-        user_message=payload.message,
-        db=db,
-        conversation_id=payload.conversation_id,
-    )
-
-@router.post("/chat/new-conversation")
-async def new_conversation_endpoint(
-    session_id: str,
-    current: AuthenticatedFarmer = Depends(get_current_farmer),
-) -> dict:
-    if session_id != current.session_id:
-        raise HTTPException(status_code=403, detail="The chat session does not belong to this token")
-    try:
-        return {"conversation_id": new_conversation(session_id)}
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))

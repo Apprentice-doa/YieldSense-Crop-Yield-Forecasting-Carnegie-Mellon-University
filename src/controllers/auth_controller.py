@@ -1,5 +1,6 @@
 """Authentication controller for login and token management."""
 
+from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Depends, Header
 from sqlalchemy.orm import Session
 

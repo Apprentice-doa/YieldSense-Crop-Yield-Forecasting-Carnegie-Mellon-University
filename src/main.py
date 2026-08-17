@@ -1,8 +1,10 @@
 """Main application entry point."""
 import sys
-import uvicorn
+from contextlib import asynccontextmanager
 from pathlib import Path
+
 from fastapi import FastAPI
+
 from src.controllers.controller import router as main_router
 from src.controllers.onboarding_controller import router as onboarding_router
 from src.controllers.auth_controller import router as auth_router
@@ -15,28 +17,24 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    if settings.initialize_db:
+        seed_initial_data()
+    tables = tables_exist()
+    assert all(tables.values()), "Database tables not initialized"
+    yield
+
+
 app = FastAPI(
     title="YieldSense API",
     description="Crop yield forecasting and farmer onboarding API service",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.include_router(main_router)
 app.include_router(onboarding_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database and seed data on startup."""
-    init_db()
-    if settings.initialize_db:
-        seed_initial_data()
-    tables = tables_exist()
-    assert all(tables.values()), "Database tables not initialized"
-    print("✓ Database initialized and ready")
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
