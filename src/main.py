@@ -2,8 +2,8 @@
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.controllers.controller import router as main_router
 from src.controllers.onboarding_controller import router as onboarding_router
@@ -32,6 +32,14 @@ app = FastAPI(
     description="Crop yield forecasting and farmer onboarding API service",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(main_router)
