@@ -23,12 +23,9 @@ class Settings:
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://neondb_owner:npg_oyz7EbDVh1SG@ep-rapid-mode-ayv1ls40.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require",
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/YieldLensDb",
     )
-    redis_url: str = os.getenv(
-        "REDIS_URL",
-        "redis://default:6uOX0t85JhVmbqorB3tkVuHqJ7C5EkQE@tuned-ants-marble-22396.db.redis.io:12665",
-    )
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     host: str = os.getenv("HOST", "0.0.0.0")
     port: int = int(os.getenv("PORT", "8000"))
     initialize_db: bool = os.getenv("INITIALIZE_DB", "false").lower() == "true"
