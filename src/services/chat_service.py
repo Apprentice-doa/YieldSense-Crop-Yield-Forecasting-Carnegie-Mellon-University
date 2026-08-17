@@ -9,6 +9,7 @@ from models.response import ChatResponse
 from src.services.farmer_service import FarmerService
 from src.services.chat_persistence import ChatPersistenceService
 from src.services.summary_service import SYSTEM_PROMPT, _get_client, _get_deployment
+from src.config.settings import settings
 from tools import browser, db as db_tools, weather as weather_tools
 
 SESSION_TTL = int(os.getenv("CHAT_SESSION_TTL_SECONDS", 7200))  # 2 hours
@@ -18,8 +19,10 @@ _redis: redis.Redis | None = None
 def _get_redis() -> redis.Redis:
     global _redis
     if _redis is None:
+        if not settings.redis_url:
+            raise RuntimeError("REDIS_URL is not configured")
         _redis = redis.from_url(
-            os.environ["REDIS_URL"],
+            settings.redis_url,
             decode_responses=True,
         )
     return _redis
