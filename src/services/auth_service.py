@@ -26,11 +26,19 @@ class AuthService:
         self.session_repo = SessionRepository(db)
         self.db = db
 
-    def login(self, email: str, password: str, ip_address: str = None, user_agent: str = None) -> dict | None:
+    def login(
+        self,
+        password: str,
+        email_address: str | None = None,
+        phone_number: str | None = None,
+        ip_address: str = None,
+        user_agent: str = None,
+    ) -> dict | None:
         """Authenticate a farmer and create a session.
         
         Args:
-            email: Farmer email
+            email_address: Farmer email, if used to sign in
+            phone_number: Farmer phone number, if used to sign in
             password: Plain text password
             ip_address: Optional IP address for logging
             user_agent: Optional user agent for logging
@@ -38,8 +46,14 @@ class AuthService:
         Returns:
             Dictionary with tokens and session info, or None if auth fails
         """
-        # Find farmer by email
-        farmer = self.farmer_repo.find_by_email(email)
+        if bool(email_address) == bool(phone_number):
+            return None
+
+        farmer = (
+            self.farmer_repo.find_by_email(email_address)
+            if email_address
+            else self.farmer_repo.find_by_phone(phone_number)
+        )
         if not farmer:
             return None
 

@@ -35,7 +35,7 @@ async def login(
     x_forwarded_for: str = Header(None),
     user_agent: str = Header(None),
 ) -> TokenResponse:
-    """Login with email and password.
+    """Login with either email or phone number and a password.
     
     - Email and password must be correct
     - Farmer account must be verified (onboarded and email confirmed with OTP)
@@ -48,8 +48,9 @@ async def login(
     
     try:
         result = svc.login(
-            email=payload.email_address,
             password=payload.password,
+            email_address=payload.email_address,
+            phone_number=payload.phone_number,
             ip_address=ip_address,
             user_agent=user_agent,
         )

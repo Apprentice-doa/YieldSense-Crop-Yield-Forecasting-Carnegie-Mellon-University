@@ -35,7 +35,7 @@ def create_verified_farmer() -> int:
     farmer_id = r.json()["id"]
     
     # Verify with OTP
-    verify_payload = {"farmer_id": farmer_id, "otp": "123456"}
+    verify_payload = {"phone_number": phone, "otp": "123456"}
     client.post("/onboarding/verify-email", json=verify_payload)
     
     return farmer_id

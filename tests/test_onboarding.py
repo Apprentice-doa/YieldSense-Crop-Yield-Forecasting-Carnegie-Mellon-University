@@ -53,9 +53,9 @@ def test_full_onboarding_flow():
     
     print(f"✓ Farmer created: ID={farmer_id}, Email={email}")
     
-    # Step 2: Verify email with static OTP (123456)
+    # Step 2: Verify with either registered contact method and static OTP (123456)
     verify_payload = {
-        "farmer_id": farmer_id,
+        "email_address": email,
         "otp": "123456"
     }
     
@@ -66,7 +66,7 @@ def test_full_onboarding_flow():
     assert verify_response["status"] == "success"
     assert verify_response["farmer_id"] == farmer_id
     
-    print(f"✓ Email verified for farmer {farmer_id}")
+    print(f"✓ Contact verified for farmer {farmer_id}")
     
     # Step 3: Check onboarding status
     r_status = client.get(f"/onboarding/status/{farmer_id}")
@@ -145,7 +145,7 @@ def test_invalid_otp():
     
     # Try with wrong OTP
     verify_payload = {
-        "farmer_id": farmer_id,
+        "phone_number": phone,
         "otp": "000000"
     }
     r_verify = client.post("/onboarding/verify-email", json=verify_payload)

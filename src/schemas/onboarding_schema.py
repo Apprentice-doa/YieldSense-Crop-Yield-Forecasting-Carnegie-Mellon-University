@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -30,10 +30,17 @@ class OnboardingRequest(BaseModel):
 
 
 class EmailVerificationRequest(BaseModel):
-    """Email verification request with OTP."""
+    """OTP verification request using exactly one registered contact method."""
 
-    farmer_id: int
+    email_address: Optional[str] = Field(default=None, min_length=5)
+    phone_number: Optional[str] = Field(default=None, min_length=7)
     otp: str = Field(..., min_length=6, max_length=6)
+
+    @model_validator(mode="after")
+    def require_one_contact_method(self):
+        if bool(self.email_address) == bool(self.phone_number):
+            raise ValueError("Provide exactly one of email_address or phone_number")
+        return self
 
 
 class FarmerOnboardingResponse(BaseModel):

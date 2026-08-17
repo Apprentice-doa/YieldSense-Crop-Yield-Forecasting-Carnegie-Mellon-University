@@ -43,7 +43,7 @@ async def signup(
 async def verify_email(
     payload: EmailVerificationRequest, db: Session = Depends(get_db)
 ) -> dict:
-    """Verify farmer email using static OTP.
+    """Verify a farmer using their registered email address or phone number.
     
     - OTP is: 123456 (static for development)
     - After verification, farmer account is active
@@ -51,7 +51,11 @@ async def verify_email(
     """
     svc = OnboardingService(db)
     try:
-        farmer = svc.verify_email_with_otp(payload.farmer_id, payload.otp)
+        farmer = svc.verify_contact_with_otp(
+            otp=payload.otp,
+            email_address=payload.email_address,
+            phone_number=payload.phone_number,
+        )
     except ValueError as e:
         if str(e) == "invalid_otp":
             raise HTTPException(status_code=400, detail="Invalid OTP")
@@ -62,7 +66,7 @@ async def verify_email(
 
     return {
         "status": "success",
-        "message": "Email verified successfully. You can now log in.",
+        "message": "Contact verified successfully. You can now log in.",
         "farmer_id": farmer.id,
         "email": farmer.email_address,
         "is_verified": farmer.is_verified,

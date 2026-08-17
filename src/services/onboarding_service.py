@@ -72,11 +72,17 @@ class OnboardingService:
         self.repo.commit()
         return farmer
 
-    def verify_email_with_otp(self, farmer_id: int, otp: str) -> Farmer | None:
-        """Verify farmer email using the provided OTP.
+    def verify_contact_with_otp(
+        self,
+        otp: str,
+        email_address: str | None = None,
+        phone_number: str | None = None,
+    ) -> Farmer | None:
+        """Verify a farmer's contact method using the provided OTP.
         
         Args:
-            farmer_id: ID of the farmer to verify
+            email_address: Registered email address, if used for verification
+            phone_number: Registered phone number, if used for verification
             otp: OTP string to verify
             
         Returns:
@@ -85,7 +91,14 @@ class OnboardingService:
         Raises:
             ValueError: If OTP is invalid
         """
-        farmer = self.repo.get_by_id(farmer_id)
+        if bool(email_address) == bool(phone_number):
+            raise ValueError("invalid_contact_method")
+
+        farmer = (
+            self.repo.find_by_email(email_address)
+            if email_address
+            else self.repo.find_by_phone(phone_number)
+        )
         if not farmer:
             return None
 

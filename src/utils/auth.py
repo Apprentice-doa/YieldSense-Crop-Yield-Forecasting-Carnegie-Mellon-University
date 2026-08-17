@@ -52,7 +52,7 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
         hash_obj = hashlib.pbkdf2_hmac("sha256", plain_password.encode("utf-8"), salt.encode(), iterations)
         computed_hash = hash_obj.hex()
         
-        return computed_hash == stored_hash
+        return secrets.compare_digest(computed_hash, stored_hash)
     except Exception:
         return False
 
