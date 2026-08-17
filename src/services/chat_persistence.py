@@ -152,6 +152,10 @@ class ChatPersistenceService:
             return []
         return self.msg_repo.get_conversation_messages(conversation.id, limit, offset)
 
+    def get_message(self, message_id: int) -> Optional[Message]:
+        """Get one persisted message for authorization checks."""
+        return self.msg_repo.get_message_by_id(message_id)
+
     def get_unread_messages(self, conversation_id: int) -> List[Message]:
         """Get unread messages in a conversation."""
         return self.msg_repo.get_unread_messages(conversation_id)

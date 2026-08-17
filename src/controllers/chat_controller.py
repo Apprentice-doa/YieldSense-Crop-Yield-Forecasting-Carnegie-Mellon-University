@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.db.session import get_db
 from src.services.chat_persistence import ChatPersistenceService
+from src.utils.security import AuthenticatedFarmer, get_current_farmer, require_farmer_access
 from src.schemas.chat_schema import (
     ConversationCreateRequest,
     ConversationResponse,
@@ -14,7 +15,23 @@ from src.schemas.chat_schema import (
     SendMessageRequest,
 )
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(
+    prefix="/chat",
+    tags=["chat"],
+    dependencies=[Depends(get_current_farmer)],
+)
+
+
+def _owned_conversation(
+    svc: ChatPersistenceService,
+    conversation_id: str | int,
+    current: AuthenticatedFarmer,
+):
+    conversation = svc.get_conversation(conversation_id)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    require_farmer_access(conversation.farmer_id, current)
+    return conversation
 
 
 @router.post("/conversations", response_model=ConversationResponse)
@@ -22,12 +39,14 @@ async def create_conversation(
     payload: ConversationCreateRequest,
     farmer_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> ConversationResponse:
     """Create a new conversation.
     
     - Each conversation is a thread of related messages
     - Can be titled and have optional context (yield_prediction, weather, etc)
     """
+    require_farmer_access(farmer_id, current)
     svc = ChatPersistenceService(db)
     conv = svc.create_conversation(
         farmer_id=farmer_id,
@@ -55,12 +74,14 @@ async def get_farmer_conversations(
     farmer_id: int,
     status: str = "active",
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> list[ConversationResponse]:
     """Get all conversations for a farmer.
     
     - Filter by status: active, archived, or all
     - Returns conversations ordered by most recent first
     """
+    require_farmer_access(farmer_id, current)
     svc = ChatPersistenceService(db)
     conversations = svc.get_farmer_conversations(farmer_id, status if status != "all" else None)
     
@@ -85,6 +106,7 @@ async def get_farmer_conversations(
 async def get_conversation(
     conversation_id: str,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> ConversationDetailResponse:
     """Get a specific conversation with all its messages.
     
@@ -92,10 +114,7 @@ async def get_conversation(
     - Messages ordered chronologically (oldest first)
     """
     svc = ChatPersistenceService(db)
-    conv = svc.get_conversation(conversation_id)
-    
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    conv = _owned_conversation(svc, conversation_id, current)
     
     messages = svc.get_conversation_messages(conversation_id, limit=1000)
     
@@ -131,6 +150,7 @@ async def send_message(
     payload: SendMessageRequest,
     farmer_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> MessageResponse:
     """Send a message in a conversation.
     
@@ -138,6 +158,8 @@ async def send_message(
     - Can integrate with AI service to generate AI response
     """
     svc = ChatPersistenceService(db)
+    require_farmer_access(farmer_id, current)
+    _owned_conversation(svc, conversation_id, current)
     
     try:
         message = svc.save_message(
@@ -169,9 +191,14 @@ async def mark_message_read(
     conversation_id: int,
     message_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Mark a message as read."""
     svc = ChatPersistenceService(db)
+    conversation = _owned_conversation(svc, conversation_id, current)
+    message = svc.get_message(message_id)
+    if not message or message.conversation_id != conversation.id:
+        raise HTTPException(status_code=404, detail="Message not found")
     ok = svc.mark_message_as_read(message_id)
     
     if not ok:
@@ -184,9 +211,11 @@ async def mark_message_read(
 async def mark_conversation_read(
     conversation_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Mark all messages in a conversation as read."""
     svc = ChatPersistenceService(db)
+    _owned_conversation(svc, conversation_id, current)
     svc.mark_conversation_as_read(conversation_id)
     
     return {"status": "success", "conversation_id": conversation_id}
@@ -196,9 +225,11 @@ async def mark_conversation_read(
 async def get_unread_messages(
     conversation_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Get unread messages in a conversation."""
     svc = ChatPersistenceService(db)
+    _owned_conversation(svc, conversation_id, current)
     unread = svc.get_unread_messages(conversation_id)
     
     return {
@@ -224,8 +255,10 @@ async def get_unread_messages(
 async def get_unread_count(
     farmer_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Get total unread message count for a farmer."""
+    require_farmer_access(farmer_id, current)
     svc = ChatPersistenceService(db)
     count = svc.get_farmer_unread_count(farmer_id)
     
@@ -236,9 +269,11 @@ async def get_unread_count(
 async def archive_conversation(
     conversation_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Archive a conversation."""
     svc = ChatPersistenceService(db)
+    _owned_conversation(svc, conversation_id, current)
     ok = svc.archive_conversation(conversation_id)
     
     if not ok:
@@ -251,9 +286,11 @@ async def archive_conversation(
 async def get_conversation_summary(
     conversation_id: int,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Get a summary of a conversation."""
     svc = ChatPersistenceService(db)
+    _owned_conversation(svc, conversation_id, current)
     summary = svc.get_conversation_summary(conversation_id)
     
     if not summary:

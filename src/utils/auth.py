@@ -4,6 +4,7 @@ import hashlib
 import secrets
 import json
 import base64
+import os
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
@@ -11,7 +12,9 @@ from typing import Dict, Any, Optional
 STATIC_OTP = "123456"
 
 # JWT secret key (in production, load from environment)
-JWT_SECRET_KEY = secrets.token_urlsafe(32)
+# Configure this in every deployed environment.  The fallback keeps local
+# development usable but intentionally invalidates tokens on process restart.
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
 
 # Token expiry times (in minutes)
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
@@ -150,7 +153,7 @@ def verify_access_token(token: str) -> Optional[Dict[str, Any]]:
         expected_signature = hmac.new(JWT_SECRET_KEY.encode(), message, hashlib.sha256).digest()
         expected_signature_encoded = _base64_url_encode(expected_signature)
         
-        if signature_encoded != expected_signature_encoded:
+        if not hmac.compare_digest(signature_encoded, expected_signature_encoded):
             return None
         
         # Decode payload

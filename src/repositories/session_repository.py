@@ -31,6 +31,13 @@ class SessionRepository:
             FarmerSession.is_active == True
         ).first()
 
+    def get_by_access_token(self, access_token: str) -> Optional[FarmerSession]:
+        """Return the active session that currently owns an access token."""
+        return self.db.query(FarmerSession).filter(
+            FarmerSession.access_token == access_token,
+            FarmerSession.is_active.is_(True),
+        ).first()
+
     def get_active_sessions_for_farmer(self, farmer_id: int) -> list[FarmerSession]:
         """Get all active sessions for a farmer."""
         return self.db.query(FarmerSession).filter(

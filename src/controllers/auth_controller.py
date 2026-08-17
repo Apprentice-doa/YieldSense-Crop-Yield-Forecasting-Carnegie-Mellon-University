@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.db.session import get_db
 from src.services.auth_service import AuthService
+from src.utils.security import AuthenticatedFarmer, get_current_farmer
 from src.schemas.auth_schema import (
     LoginRequest,
     TokenResponse,
@@ -90,12 +91,16 @@ async def refresh_token(
 async def logout(
     session_id: str,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> dict:
     """Logout and deactivate the current session.
     
     - Invalidates the current access token
     - Farmer will need to login again for new session
     """
+    if session_id != current.session_id:
+        raise HTTPException(status_code=403, detail="You may only log out your own session")
+
     svc = AuthService(db)
     ok = svc.logout(session_id)
 
@@ -109,12 +114,16 @@ async def logout(
 async def get_session(
     session_id: str,
     db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
 ) -> SessionStatusResponse:
     """Get the status of a session.
     
     - Check if session is active
     - See when access token expires
     """
+    if session_id != current.session_id:
+        raise HTTPException(status_code=403, detail="You may only view your own session")
+
     svc = AuthService(db)
     status = svc.get_session_status(session_id)
 

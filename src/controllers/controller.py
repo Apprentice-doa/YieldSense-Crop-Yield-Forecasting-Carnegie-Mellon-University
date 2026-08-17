@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from src.db.session import get_db
 from src.services.farmer_service import FarmerService
 from src.services.chat_service import chat, new_conversation
+from src.utils.security import AuthenticatedFarmer, get_current_farmer, require_farmer_access
 from models.request import FarmerOnboardingCreate, FarmerOnboardingUpdate, ChatRequest
 from models.response import ChatResponse, FarmerOut
 
@@ -16,22 +17,40 @@ async def health_check() -> Dict[str, str]:
     return {"status": "healthy"}
 
 @router.get("/farmers", response_model=List[FarmerOut])
-async def list_farmers(db: Session = Depends(get_db)) -> List[FarmerOut]:
+async def list_farmers(
+    db: Session = Depends(get_db),
+    _: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> List[FarmerOut]:
     return FarmerService(db).list_farmers()
 
 @router.post("/farmers", response_model=FarmerOut)
-async def create_farmer(payload: FarmerOnboardingCreate, db: Session = Depends(get_db)) -> FarmerOut:
+async def create_farmer(
+    payload: FarmerOnboardingCreate,
+    db: Session = Depends(get_db),
+    _: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> FarmerOut:
     return FarmerService(db).create_farmer(payload.model_dump())
 
 @router.get("/farmers/{farmer_id}", response_model=FarmerOut)
-async def get_farmer(farmer_id: int, db: Session = Depends(get_db)) -> FarmerOut:
+async def get_farmer(
+    farmer_id: int,
+    db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> FarmerOut:
+    require_farmer_access(farmer_id, current)
     farmer = FarmerService(db).get_farmer(farmer_id)
     if not farmer:
         raise HTTPException(status_code=404, detail="Farmer not found")
     return farmer
 
 @router.put("/farmers/{farmer_id}", response_model=FarmerOut)
-async def update_farmer(farmer_id: int, payload: FarmerOnboardingUpdate, db: Session = Depends(get_db)) -> FarmerOut:
+async def update_farmer(
+    farmer_id: int,
+    payload: FarmerOnboardingUpdate,
+    db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> FarmerOut:
+    require_farmer_access(farmer_id, current)
     try:
         farmer = FarmerService(db).update_farmer(farmer_id, payload.model_dump(exclude_unset=True))
     except ValueError as e:
@@ -45,13 +64,25 @@ async def update_farmer(farmer_id: int, payload: FarmerOnboardingUpdate, db: Ses
     return farmer
 
 @router.delete("/farmers/{farmer_id}")
-async def delete_farmer(farmer_id: int, db: Session = Depends(get_db)) -> dict:
+async def delete_farmer(
+    farmer_id: int,
+    db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> dict:
+    require_farmer_access(farmer_id, current)
     if not FarmerService(db).delete_farmer(farmer_id):
         raise HTTPException(status_code=404, detail="Farmer not found")
     return {"deleted": True}
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
+async def chat_endpoint(
+    payload: ChatRequest,
+    db: Session = Depends(get_db),
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> ChatResponse:
+    require_farmer_access(payload.farmer_id, current)
+    if payload.session_id != current.session_id:
+        raise HTTPException(status_code=403, detail="The chat session does not belong to this token")
     return chat(
         session_id=payload.session_id,
         farmer_id=payload.farmer_id,
@@ -61,7 +92,12 @@ async def chat_endpoint(payload: ChatRequest, db: Session = Depends(get_db)) -> 
     )
 
 @router.post("/chat/new-conversation")
-async def new_conversation_endpoint(session_id: str) -> dict:
+async def new_conversation_endpoint(
+    session_id: str,
+    current: AuthenticatedFarmer = Depends(get_current_farmer),
+) -> dict:
+    if session_id != current.session_id:
+        raise HTTPException(status_code=403, detail="The chat session does not belong to this token")
     try:
         return {"conversation_id": new_conversation(session_id)}
     except ValueError as e:
