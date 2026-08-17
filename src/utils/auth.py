@@ -7,9 +7,7 @@ import base64
 import os
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-
-# Static OTP for email verification during onboarding
-STATIC_OTP = "123456"
+from src.config.settings import settings
 
 # JWT secret key (in production, load from environment)
 # Configure this in every deployed environment.  The fallback keeps local
@@ -58,8 +56,8 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
 
 
 def verify_otp(provided_otp: str) -> bool:
-    """Verify the provided OTP against the static OTP."""
-    return provided_otp == STATIC_OTP
+    """Verify the provided OTP against the configured development OTP."""
+    return secrets.compare_digest(provided_otp, settings.mock_otp)
 
 
 def _base64_url_encode(data: bytes) -> str:
