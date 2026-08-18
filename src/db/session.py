@@ -38,6 +38,7 @@ def tables_exist():
         "crop_profiles": "crop_profiles" in existing_tables,
         "conversations": "conversations" in existing_tables,
         "messages": "messages" in existing_tables,
+        "yield_records": "yield_records" in existing_tables,
     }
 
 

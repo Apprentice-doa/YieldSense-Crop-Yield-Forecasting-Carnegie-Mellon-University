@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
-
 from src.db.base import Base
 
 class YieldRecord(Base):
@@ -16,6 +14,7 @@ class YieldRecord(Base):
     harvest_date = Column(Date, nullable=True)
     predicted_yield_kg_per_ha = Column(Float, nullable=False)
     actual_yield_kg_per_ha = Column(Float, nullable=True)   # farmer reports back
+    advisory_summary = Column(String, nullable=True)        # LLM-generated advisory
     created_at = Column(Date, server_default=func.current_date())
 
     farmer = relationship("Farmer", back_populates="yield_records")

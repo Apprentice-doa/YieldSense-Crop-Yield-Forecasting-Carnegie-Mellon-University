@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from src.controllers.controller import router as main_router
 from src.controllers.onboarding_controller import router as onboarding_router
 from src.controllers.auth_controller import router as auth_router
 from src.controllers.chat_controller import router as chat_router
+from src.controllers.prediction_controller import router as prediction_router
+from src.controllers.advisory_controller import router as advisory_router
 from src.db.session import init_db, seed_initial_data, tables_exist
 from src.config.settings import settings
 
@@ -46,3 +47,5 @@ app.include_router(main_router)
 app.include_router(onboarding_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(prediction_router)
+app.include_router(advisory_router)

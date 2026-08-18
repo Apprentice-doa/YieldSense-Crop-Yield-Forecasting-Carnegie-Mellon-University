@@ -5,12 +5,19 @@ ready for containerized and local PostgreSQL-backed execution.
 """
 
 from __future__ import annotations
-
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import List
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _parse_cors_origins() -> List[str]:
+    raw = os.getenv("CORS_ORIGINS", "")
+    if not raw:
+        return ["*"]
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
 @dataclass(frozen=True)
@@ -31,6 +38,7 @@ class Settings:
     initialize_db: bool = os.getenv("INITIALIZE_DB", "false").lower() == "true"
     # Development-only OTP used until a real email/SMS delivery provider is added.
     mock_otp: str = os.getenv("MOCK_OTP", "123456")
+    cors_origins: List[str] = field(default_factory=_parse_cors_origins)
 
 
 settings = Settings()

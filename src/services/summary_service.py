@@ -51,6 +51,17 @@ extension officers or agronomists when making significant financial or planting 
 Language: Detect the language of the farmer's message and respond in that same language.
 Supported languages: English, Swahili, Kinyarwanda, French, Amharic, Luganda."""
 
+SUMMARY_SYSTEM_PROMPT = """You are YieldSense, an agricultural advisory assistant for smallholder farmers in Africa.
+You have just completed a crop yield prediction and must generate a structured seasonal advisory report.
+
+Tone: Clear, practical, encouraging. Plain language — no jargon.
+Format: Use the four numbered sections exactly as requested. Use plain text only — no markdown, no bold.
+Keep it concise: use short paragraphs or a few short bullets per section, and avoid unnecessary detail.
+Data: Ground all advice in the farmer's specific crop, location, season, and yield figures provided.
+Never fabricate benchmarks. If a benchmark is unknown, say so plainly.
+Safety: End every report with a reminder that this advice is a guide and not a substitute for a local
+agricultural extension officer or agronomist."""
+
 def build_summary_prompt(ctx: YieldPredictionContext) -> str:
     soil_line = f"Soil type        : {ctx.soil_type}" if ctx.soil_type else ""
     irrigation_line = f"Irrigation method: {ctx.irrigation_method}" if ctx.irrigation_method else ""
@@ -101,7 +112,7 @@ def get_summary(ctx: YieldPredictionContext) -> str:
     response = _get_client().chat.completions.create(
         model=_get_deployment(),
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
             {"role": "user", "content": build_summary_prompt(ctx)},
         ],
     )

@@ -101,6 +101,8 @@ flake8 src/ tests/
 | `python scripts/advisory_coverage_report.py` | Rule behaviour across the whole dataset |
 | `python scripts/advisory_demo.py` | Warm the cache and print demo advisories |
 | `python scripts/season_report.py` | Predicted vs actual season performance |
+| `python scripts/retrain_models.py` | Retrain all ML models from the training CSV and overwrite `data/model_registry/` |
+| `python scripts/e2e_ml_to_summary.py` | End-to-end smoke test: ML inference → season derivation → LLM advisory |
 
 ## Data
 
